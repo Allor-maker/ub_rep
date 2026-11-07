@@ -2,13 +2,14 @@
 
 Реализованы 27 проверок C01, 24 бюджетных C04–C06, 4 проверки конфигурации
 и 35 mock HTTP проверок A3 в `unit/test_llm_gateway.py`, а также 51 проверка A4
-(всего 141; в текущем окружении Windows пять платформенных проверок пропущены).
-Полный suite требует Python 3.11 и HTTPX; C01 отдельно проверяет импорт с `-S`.
+(всего A1–A4: 141). A5-lite добавляет 33 теста, включая реальный SDK workflow
+и отдельный CLI-процесс: всего 174; в текущем Windows пять платформенных пропусков.
+Полный suite требует Python 3.11, HTTPX и openJiuwen 0.1.19; C01 проверяет импорт с `-S`.
 Из корня репозитория в PowerShell:
 
 ```powershell
 python -m venv .venv-a1
-.\.venv-a1\Scripts\python.exe -m pip install -r requirements-dev.txt -r requirements-llm.txt
+.\.venv-a1\Scripts\python.exe -m pip install -r requirements-dev.txt -r requirements-llm.txt -r requirements-sdk-probe.txt
 $env:PYTHONPATH = 'src'
 .\.venv-a1\Scripts\python.exe -m unittest discover -s tests -v
 ```
@@ -19,6 +20,8 @@ Linux-проверка описаны в [отчёте A1](../docs/a1-report.md)
 и границы C04–C06 — в [отчёте A2](../docs/a2-report.md). Остальные сценарии ещё предстоят.
 Gateway и связанные Protocol проверяются также через `contracts/typecheck_llm.py`;
 команды и ограничения — [отчёт A3](../docs/a3-report.md). Реальная сеть в HTTP-тестах запрещена.
+Сквозные проверки, обязательные зависимости и команды A5-lite — в
+[отчёте A5](../docs/a5-report.md). Fake B существуют только в `integration/fakes.py`.
 
 | Каталог | Назначение | Ответственный |
 | --- | --- | --- |

@@ -1,12 +1,16 @@
-# Оркестрация openJiuwen — A
+# A5-lite runtime
 
-Связывает выбор попытки, решатель, шлюз, инструменты и результаты проверки.
-Управляет ограниченным циклом, временем, отменой и параллельностью. openJiuwen
-реально исполняет workflow; конкретные API выбираются после проверки версии.
-Не дублирует инструменты B, книгу бюджета и формат публикации.
+`AgentRunner` владеет состояниями задач и выбирает `PlanDecision` существующим
+Planner. `JiuwenAdapter` реализует неизменный AttemptEngine: последовательность
+шагов исполняет реальный openJiuwen 0.1.19. После кандидата драйвер вызывает
+Validator на отдельной копии, V1AcceptancePolicy и AnswerOnlyPublisher.
 
-В A1 добавлен отдельный `sdk_probe.py`: Workflow из двух компонентов, отмена
-и дедлайн, без LLM/API. Audit-hook ограничивает connect/getaddrinfo,
-но не обеспечивает полную сетевую изоляцию. Это проверка API SDK, реализация
-JiuwenAdapter/AttemptEngine относится к A5. Команды и ограничения —
-в [отчёте A1](../../../docs/a1-report.md).
+Доверенная точка сборки возвращает `runtime.Components(registry=..., tools=...,
+validator=..., gateway=...)`. Gateway получает тот же Ledger и strict-конфигурацию.
+`deterministic_solvers` задаются оператором и получают ноль LLM-вызовов.
+Planner можно заменить через `Components.planner` без изменения Contracts v1.
+Solver.step/ToolExecutor/Validator не должны создавать независимые циклы агента
+или оставлять фоновые задачи после возврата/отмены. Их ОС-изоляция не обеспечивается SDK.
+
+Полные команды запуска, тесты, единицы BUDGET и ограничения:
+[docs/a5-report.md](../../../docs/a5-report.md).

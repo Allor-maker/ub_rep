@@ -4,13 +4,15 @@
 набрать максимальную сумму наград на 100 задачах при общем ограничении токенов
 и времени. При равных баллах выигрывает меньший расход токенов.
 
-**Состояние: реализованы A1–A4: контракты, Ledger, Gateway, загрузчик и baseline-планировщик.** Добавлены 34 DTO,
+**Состояние: реализованы A1–A4 и A5-lite: сквозной workflow с текстовой публикацией.** Добавлены 34 DTO,
 14 Protocol и отдельный offline SDK smoke для openJiuwen 0.1.19 на Windows/Python 3.11.
 Gateway проверен только через mock HTTP; strict требует явно проверенных bounds/profile.
-Исполнение агента, решатели, `Dockerfile` и `run_agent.py` ещё предстоят.
+`run_agent.py` исполняет реальный openJiuwen workflow с подключаемыми B-компонентами;
+fake B доступны только в integration tests. Реальные решатели и `Dockerfile` ещё предстоят.
 Linux-проверка SDK остаётся открытой. Вызовов NeuralDeep и конкурсного результата нет.
 Выполненные проверки и ограничения: [отчёт A1](docs/a1-report.md),
-[отчёт A2](docs/a2-report.md), [отчёт A3](docs/a3-report.md), [отчёт A4](docs/a4-report.md).
+[отчёт A2](docs/a2-report.md), [отчёт A3](docs/a3-report.md), [отчёт A4](docs/a4-report.md),
+[отчёт A5-lite с запуском и ограничениями](docs/a5-report.md).
 `BUDGET` поддерживается с обязательным явным выбором единиц.
 
 ## С чего начать
@@ -29,18 +31,19 @@ Linux-проверка SDK остаётся открытой. Вызовов Neu
    содержит только настройки инструментов; `pip install .` не поддерживается.
    Сборка и финальные Linux-зависимости относятся к A6.
 
-## Проверка A1–A4
+## Проверка A1–A5-lite
 
-Python 3.11, из корня репозитория в PowerShell; полный suite требует HTTPX:
+Python 3.11, из корня репозитория в PowerShell; полный suite требует HTTPX и SDK:
 
 ```powershell
 python -m venv .venv-a1
-.\.venv-a1\Scripts\python.exe -m pip install -r requirements-dev.txt -r requirements-llm.txt
+.\.venv-a1\Scripts\python.exe -m pip install -r requirements-dev.txt -r requirements-llm.txt -r requirements-sdk-probe.txt
 $env:PYTHONPATH = 'src'
 .\.venv-a1\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-141 тест: C01, бюджетные C04–C06/конфигурация, A3 с mock HTTP, загрузка и планирование A4.
+174 теста: C01, бюджетные C04–C06/конфигурация, A3 с mock HTTP, загрузка и планирование A4,
+реальный SDK workflow и защищённая текстовая публикация A5-lite.
 В текущем окружении Windows пять платформенных проверок пропускаются. Примеры импорта:
 `from nsu_budget_agent.contracts.models import TaskSpec`
 и `from nsu_budget_agent.contracts.ports import Solver, SolverContext`.
