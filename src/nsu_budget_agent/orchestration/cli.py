@@ -67,6 +67,7 @@ async def _run(args, factory: ComponentFactory) -> int:
                     "load_issues": len(report.loaded.issues),
                     "assessment_errors": len(report.assessment_errors),
                     "saved": sum(r.status == "saved" for r in report.receipts),
+                    "limit_units": report.budget.limit_units,
                     "spent_units": report.budget.spent_units,
                     "held_units": report.budget.held_units,
                     "workflow_invocations": report.workflow_invocations,
@@ -90,8 +91,8 @@ def main(argv: list[str] | None = None, *, factory: ComponentFactory | None = No
     parser.add_argument(
         "--budget-unit",
         choices=("competition_tokens", "units_x10"),
-        required=True,
-        help="explicit interpretation of BUDGET; organizer units are unconfirmed",
+        default="competition_tokens",
+        help="BUDGET unit (default: competition_tokens); override if organizer specifies otherwise",
     )
     parser.add_argument(
         "--components",
@@ -99,7 +100,7 @@ def main(argv: list[str] | None = None, *, factory: ComponentFactory | None = No
         help="trusted module:factory; defaults to offline B-minimal production components",
     )
     parser.add_argument("--staging-dir", type=Path)
-    parser.add_argument("--timeout-s", type=float, default=120)
+    parser.add_argument("--timeout-s", type=float, default=3300)
     parser.add_argument("--mode", choices=("auto", "coverage", "portfolio"), default="auto")
     args = parser.parse_args(argv)
     os.environ["HF_HUB_OFFLINE"] = "1"

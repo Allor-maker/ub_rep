@@ -24,6 +24,9 @@ class BudgetConfigTests(unittest.TestCase):
         for text in ("720", "720.0", "7.2e2"):
             self.assertEqual(parse_budget(text, unit="units_x10"), 720)
         self.assertEqual(budget_from_env(unit="competition_tokens", environ={"BUDGET": "72"}), 720)
+        self.assertEqual(
+            budget_from_env(unit="competition_tokens", environ={"BUDGET": "100000"}), 1_000_000
+        )
         self.assertEqual(budget_from_env(unit="units_x10", environ={"BUDGET": "72"}), 72)
         with patch.dict(os.environ, {"BUDGET": "72"}):
             self.assertEqual(budget_from_env(unit="competition_tokens"), 720)

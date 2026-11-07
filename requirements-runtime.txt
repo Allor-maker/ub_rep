@@ -1,0 +1,4 @@
+# Direct runtime pins for Linux resolution at image build time.
+# Transitive dependencies are not yet locked with hashes.
+openjiuwen==0.1.19
+httpx==0.28.1

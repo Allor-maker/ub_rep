@@ -1,8 +1,8 @@
-name: A1-A5 and B-minimal Linux CI
+name: A1-A6 and B-minimal Linux CI
 
 "on":
   push:
-    branches: [feature/a1-contracts, feature/a2-budget-ledger, feature/a3-llm-gateway, feature/a4-planner, feature/a5-orchestration, feature/b-minimal]
+    branches: [feature/a1-contracts, feature/a2-budget-ledger, feature/a3-llm-gateway, feature/a4-planner, feature/a5-orchestration, feature/b-minimal, feature/a6-docker]
   pull_request:
     branches: [main]
 
@@ -40,6 +40,7 @@ jobs:
             requirements-dev.txt
             requirements-llm.txt
             requirements-sdk-probe.txt
+            requirements-runtime.txt
       - name: Install A1-A5 checks and SDK (Linux dependency resolution)
         run: python -m pip install --timeout 30 --retries 2 -r requirements-dev.txt -r requirements-llm.txt -r requirements-sdk-probe.txt
       - name: All A1-A5 and B-minimal tests (no live API)
@@ -64,7 +65,7 @@ jobs:
           tests/contracts/typecheck_consumers.py tests/contracts/typecheck_budget.py
           tests/contracts/typecheck_llm.py tests/contracts/typecheck_planning.py
           tests/contracts/typecheck_orchestration.py
-          tests/contracts/typecheck_b_minimal.py
+          tests/contracts/typecheck_b_minimal.py tests/docker/smoke.py
 
   sdk:
     name: openJiuwen 0.1.19 Linux probe (Python 3.11)
@@ -93,3 +94,33 @@ jobs:
           HF_HUB_OFFLINE: "1"
           TRANSFORMERS_OFFLINE: "1"
         run: python -m nsu_budget_agent.orchestration.sdk_probe
+
+  docker:
+    name: A6 Linux image and offline smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Build image and enforce competition limits
+        timeout-minutes: 17
+        run: |
+          set -euo pipefail
+          start=$(date +%s)
+          timeout 1000 docker build --platform linux/amd64 --tag nsu-budget-agent:a6-smoke .
+          elapsed=$(($(date +%s) - start))
+          bytes=$(docker image inspect --format '{{.Size}}' nsu-budget-agent:a6-smoke)
+          printf 'Build seconds: %s\nUncompressed image bytes: %s\n' "$elapsed" "$bytes"
+          test "$elapsed" -lt 1000
+          test "$bytes" -lt 4000000000
+      - name: Offline read-only Docker smoke with production solver
+        timeout-minutes: 4
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+        run: python tests/docker/smoke.py --mode docker
