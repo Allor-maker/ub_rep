@@ -1,0 +1,2 @@
+# A3 async HTTP transport; no provider/framework SDK or implicit retry wrapper.
+httpx==0.28.1
