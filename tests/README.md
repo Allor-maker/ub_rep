@@ -1,18 +1,23 @@
 # Проверки
 
-Реализованы 27 проверок C01, 24 бюджетных C04–C06 в `contracts/test_budget_ledger.py`
-и 4 проверки бюджетной конфигурации в `unit/test_budget_config.py` (всего 55).
-Нужен только Python 3.11. Из корня репозитория в PowerShell:
+Реализованы 27 проверок C01, 24 бюджетных C04–C06, 4 проверки конфигурации
+и 32 mock HTTP проверки A3 в `unit/test_llm_gateway.py` (всего 87).
+Полный suite требует Python 3.11 и HTTPX; C01 отдельно проверяет импорт с `-S`.
+Из корня репозитория в PowerShell:
 
 ```powershell
+python -m venv .venv-a1
+.\.venv-a1\Scripts\python.exe -m pip install -r requirements-dev.txt -r requirements-llm.txt
 $env:PYTHONPATH = 'src'
-python -S -m unittest discover -s tests -v
+.\.venv-a1\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
 Статический пример реализаций B — `contracts/typecheck_consumers.py`.
 Команды mypy/ruff и отдельного SDK smoke, результат Windows-проверки и открытая
 Linux-проверка описаны в [отчёте A1](../docs/a1-report.md). Команды проверки ledger
 и границы C04–C06 — в [отчёте A2](../docs/a2-report.md). Остальные сценарии ещё предстоят.
+Gateway и связанные Protocol проверяются также через `contracts/typecheck_llm.py`;
+команды и ограничения — [отчёт A3](../docs/a3-report.md). Реальная сеть в HTTP-тестах запрещена.
 
 | Каталог | Назначение | Ответственный |
 | --- | --- | --- |

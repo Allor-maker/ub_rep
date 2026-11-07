@@ -1,8 +1,8 @@
-name: A1 and A2 Linux CI
+name: A1, A2 and A3 Linux CI
 
 "on":
   push:
-    branches: [feature/a1-contracts, feature/a2-budget-ledger]
+    branches: [feature/a1-contracts, feature/a2-budget-ledger, feature/a3-llm-gateway]
   pull_request:
     branches: [main]
 
@@ -25,7 +25,7 @@ env:
 
 jobs:
   contracts:
-    name: C01, A2, Ruff and Mypy (Python 3.11)
+    name: C01, A2, A3 mock HTTP, Ruff and Mypy (Python 3.11)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -36,19 +36,23 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: requirements-dev.txt
-      - name: C01 and A2 tests without site-packages or SDK
-        run: python -S -m unittest discover -s tests -v
-      - name: Install development checks
-        run: python -m pip install --timeout 30 --retries 2 -r requirements-dev.txt
+          cache-dependency-path: |
+            requirements-dev.txt
+            requirements-llm.txt
+      - name: Install development checks and HTTP mock transport
+        run: python -m pip install --timeout 30 --retries 2 -r requirements-dev.txt -r requirements-llm.txt
+      - name: C01, A2 and A3 tests (no live API)
+        run: python -m unittest discover -s tests -v
       - name: Ruff lint
         run: python -m ruff check src tests
       - name: Ruff formatting
         run: python -m ruff format --check src tests
-      - name: Mypy contracts, budget and Protocol consumers
+      - name: Mypy contracts, budget, gateway and Protocol consumers
         run: >-
           python -m mypy src/nsu_budget_agent/contracts src/nsu_budget_agent/budget
+          src/nsu_budget_agent/llm src/nsu_budget_agent/telemetry
           tests/contracts/typecheck_consumers.py tests/contracts/typecheck_budget.py
+          tests/contracts/typecheck_llm.py
 
   sdk:
     name: openJiuwen 0.1.19 Linux probe (Python 3.11)

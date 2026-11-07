@@ -4,12 +4,14 @@
 набрать максимальную сумму наград на 100 задачах при общем ограничении токенов
 и времени. При равных баллах выигрывает меньший расход токенов.
 
-**Состояние: реализованы общие контракты A1 и Budget Ledger A2.** Добавлены 34 DTO,
+**Состояние: реализованы контракты A1, Budget Ledger A2 и LLM Gateway A3.** Добавлены 34 DTO,
 14 Protocol и отдельный offline SDK smoke для openJiuwen 0.1.19 на Windows/Python 3.11.
-Агент, клиент API, планировщик, решатели, `Dockerfile` и `run_agent.py` ещё предстоят.
+Gateway проверен только через mock HTTP; strict требует явно проверенных bounds/profile.
+Агент, планировщик, решатели, `Dockerfile` и `run_agent.py` ещё предстоят.
 Linux-проверка SDK остаётся открытой. Вызовов NeuralDeep и конкурсного результата нет.
 Выполненные проверки и ограничения: [отчёт A1](docs/a1-report.md),
-[отчёт A2](docs/a2-report.md). `BUDGET` поддерживается с обязательным явным выбором единиц.
+[отчёт A2](docs/a2-report.md), [отчёт A3](docs/a3-report.md).
+`BUDGET` поддерживается с обязательным явным выбором единиц.
 
 ## С чего начать
 
@@ -27,16 +29,18 @@ Linux-проверка SDK остаётся открытой. Вызовов Neu
    содержит только настройки инструментов; `pip install .` не поддерживается.
    Сборка и финальные Linux-зависимости относятся к A6.
 
-## Проверка A1 и A2
+## Проверка A1–A3
 
-Python 3.11, из корня репозитория в PowerShell; сторонние пакеты не нужны:
+Python 3.11, из корня репозитория в PowerShell; полный suite требует HTTPX:
 
 ```powershell
+python -m venv .venv-a1
+.\.venv-a1\Scripts\python.exe -m pip install -r requirements-dev.txt -r requirements-llm.txt
 $env:PYTHONPATH = 'src'
-python -S -m unittest discover -s tests -v
+.\.venv-a1\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-55 тестов: C01 и бюджетные C04–C06/конфигурация. Примеры импорта:
+87 тестов: C01, бюджетные C04–C06/конфигурация и A3 с mock HTTP. Примеры импорта:
 `from nsu_budget_agent.contracts.models import TaskSpec`
 и `from nsu_budget_agent.contracts.ports import Solver, SolverContext`.
 Сырые строки относительных путей проверяйте через `parse_rel_path` до PurePosixPath.
@@ -51,7 +55,7 @@ SDK smoke запускается отдельно по [отчёту A1](docs/a1
 служит резервным маршрутом; специализированные решатели — расширения. `task_type`
 является необязательной открытой строкой-подсказкой, а не перечислением из четырёх
 значений. Новые форматы будут добавляться адаптерами и инструментами без изменения
-планировщика. Сейчас реализованы общий слой данных/интерфейсов и книга бюджета.
+планировщика. Сейчас реализованы общие определения, книга бюджета и LLM-шлюз.
 
 Подробности: [архитектура](docs/architecture.md), [контракты](docs/contracts.md),
 [этапы интеграции](docs/roadmap.md).
@@ -80,7 +84,7 @@ SDK smoke запускается отдельно по [отчёту A1](docs/a1
 
 В `contracts/` реализованы stdlib dataclass и Protocol. В `orchestration/` добавлен
 отдельный SDK probe; `budget/` содержит ledger и преобразование единиц конфигурации.
-Остальные сервисные каталоги пока содержат пояснения.
+В `llm/` реализован шлюз; остальные сервисные каталоги пока содержат пояснения.
 Один asyncio event loop, цикл в JiuwenAdapter и stateless-шаг решателя — принятая основа.
 
 ## Условия соревнования
