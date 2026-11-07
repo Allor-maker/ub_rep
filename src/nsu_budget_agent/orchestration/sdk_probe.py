@@ -13,8 +13,9 @@ import sys
 
 
 def _offline_audit(event, args):
-    # Windows asyncio may use loopback sockets internally. External connections
-    # and name resolution are forbidden throughout SDK import and execution.
+    # Guard only socket.connect and socket.getaddrinfo; Windows asyncio uses
+    # loopback internally. This is not OS network isolation (e.g. sendto is not
+    # covered), and says nothing about subprocesses or native-library networking.
     if event == "socket.connect":
         address = args[1]
         if isinstance(address, tuple) and address[0] not in ("127.0.0.1", "::1"):
@@ -123,7 +124,7 @@ async def probe() -> dict:
             "two_components": "passed",
             "cancel_cleanup": "passed",
             "deadline_cleanup": "passed",
-            "external_network": "blocked",
+            "socket_audit_guard": "connect_and_getaddrinfo_loopback_only",
         }
     finally:
         await Runner.stop()

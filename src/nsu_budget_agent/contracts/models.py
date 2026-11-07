@@ -6,10 +6,11 @@ uniqueness and state transitions) belong to the implementing ports.
 
 from __future__ import annotations
 
+import json
 import math
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Literal, TypeAlias, cast, get_args
 
@@ -132,11 +133,12 @@ def _rel(value: RelPath) -> None:
     parse_rel_path(value.as_posix())
 
 
-def _paths(value: tuple[RelPath, ...], name: str) -> None:
+def _paths(value: tuple[RelPath, ...], name: str, *, unique: bool = True) -> None:
     _items(value, PurePosixPath, name)
     for path in value:
         _rel(path)
-    _unique(value, name)
+    if unique:
+        _unique(value, name)
 
 
 def _absolute(value: Path, name: str) -> None:
@@ -149,64 +151,62 @@ def _artifacts(value: tuple[ArtifactRef, ...], name: str = "artifacts") -> None:
     _unique(tuple(item.path for item in value), name)
 
 
-def _immutable(*args, **kwargs):
-    raise ContractError("nested JSON is immutable; create a new DTO")
+class _JsonSnapshot(str):
+    """Private immutable storage; public fields always expose ordinary JSON copies."""
+
+    __slots__ = ()
 
 
-class _FrozenDict(dict):
-    """JSON-serializable immutable copy; same conventional limits as frozen DTOs."""
+def _restore_json_dto(cls, values):
+    # Re-enter validation when unpickling instead of installing mutable slot values.
+    return cls(**values)
 
-    __slots__ = ("_sealed",)
-    __setitem__ = __delitem__ = clear = pop = popitem = setdefault = update = _immutable
-    __ior__ = _immutable
 
-    def __init__(self, values=()):
-        if hasattr(self, "_sealed"):
-            _immutable()
-        dict.__init__(self, values)
-        self._sealed = True
+class _JsonDTO:
+    """Keep v1 dict/list field types without retaining mutable containers in a DTO.
+
+    Each JSON field read produces a detached view. Mutating that view (including
+    through built-in dict/list methods) cannot change this or another DTO.
+    """
+
+    __slots__ = ()
+
+    def __getattribute__(self, name):
+        value = object.__getattribute__(self, name)
+        return json.loads(value) if type(value) is _JsonSnapshot else value
+
+    def __copy__(self):
+        return self
 
     def __deepcopy__(self, memo):
         return self
 
-
-class _FrozenList(list):
-    __slots__ = ("_sealed",)
-    __setitem__ = __delitem__ = append = clear = extend = insert = pop = remove = _immutable
-    reverse = sort = __iadd__ = __imul__ = _immutable
-
-    def __init__(self, values=()):
-        if hasattr(self, "_sealed"):
-            _immutable()
-        list.__init__(self, values)
-        self._sealed = True
-
-    def __deepcopy__(self, memo):
-        return self
+    def __reduce_ex__(self, protocol):
+        return _restore_json_dto, (
+            type(self),
+            {f.name: getattr(self, f.name) for f in fields(self)},
+        )
 
 
-def _freeze_json(value: object, active: set[int] | None = None) -> JsonValue:
+def _copy_json(value: object, active: set[int] | None = None) -> JsonValue:
     if value is None or type(value) in (bool, int, str):
         return cast(JsonValue, value)
     if type(value) is float:
         _number(cast(float, value), "JSON number")
         return cast(float, value)
-    _require(type(value) in (dict, list, _FrozenDict, _FrozenList), "invalid JSON value")
+    _require(type(value) in (dict, list), "invalid JSON value")
     active = set() if active is None else active
     _require(id(value) not in active, "cyclic JSON value")
     active.add(id(value))
     try:
         if isinstance(value, dict):
-            result_dict = _FrozenDict()
+            result_dict: JsonObject = {}
             for key, item in value.items():
                 _string(key, "JSON key")
-                dict.__setitem__(result_dict, key, _freeze_json(item, active))
+                result_dict[key] = _copy_json(item, active)
             return result_dict
         else:
-            result_list = _FrozenList()
-            for item in cast(list, value):
-                list.append(result_list, _freeze_json(item, active))
-            return result_list
+            return [_copy_json(item, active) for item in cast(list, value)]
     except RecursionError as exc:
         raise ContractError("JSON nesting exceeds interpreter limit") from exc
     finally:
@@ -217,22 +217,65 @@ def _json_field(dto: object, name: str, *, object_only: bool = False) -> None:
     value = getattr(dto, name)
     if object_only:
         _require(isinstance(value, dict), f"{name} must be a JSON object")
-    object.__setattr__(dto, name, _freeze_json(value))
+    copied = _copy_json(value)
+    try:
+        snapshot = json.dumps(copied, allow_nan=False, separators=(",", ":"))
+    except (ValueError, RecursionError) as exc:
+        raise ContractError("JSON cannot be serialized") from exc
+    object.__setattr__(dto, name, _JsonSnapshot(snapshot))
 
 
 def _schema_refs(value: JsonValue) -> None:
-    if isinstance(value, dict):
-        if "$ref" in value:
-            ref = value["$ref"]
+    """Inspect schema positions in JSON Schema drafts 4 through 2020-12.
+
+    This is a reference policy check, not a complete schema validator. Maps of
+    property/definition names and annotation/constant values are not schemas.
+    Unknown extension keywords are left to the consumer's chosen dialect.
+    """
+    if not isinstance(value, dict):  # Boolean schemas contain no references.
+        return
+    for keyword in ("$ref", "$dynamicRef", "$recursiveRef"):
+        if keyword in value:
+            ref = value[keyword]
             _require(
-                isinstance(ref, str) and ref.startswith("#"),
+                isinstance(ref, str) and (not ref or ref.startswith("#")),
                 "only local schema $ref values are allowed",
             )
-        for item in value.values():
-            _schema_refs(item)
-    elif isinstance(value, list):
-        for item in value:
-            _schema_refs(item)
+    for keyword in ("properties", "patternProperties", "$defs", "definitions", "dependentSchemas"):
+        schemas = value.get(keyword)
+        if isinstance(schemas, dict):
+            for schema in schemas.values():
+                _schema_refs(schema)
+    dependencies = value.get("dependencies")
+    if isinstance(dependencies, dict):
+        for schema in dependencies.values():
+            if isinstance(schema, dict):  # Arrays here are property dependencies.
+                _schema_refs(schema)
+    for keyword in ("allOf", "anyOf", "oneOf", "prefixItems"):
+        schemas = value.get(keyword)
+        if isinstance(schemas, list):
+            for schema in schemas:
+                _schema_refs(schema)
+    for keyword in (
+        "additionalProperties",
+        "additionalItems",
+        "contains",
+        "propertyNames",
+        "not",
+        "if",
+        "then",
+        "else",
+        "unevaluatedItems",
+        "unevaluatedProperties",
+        "contentSchema",
+        "items",
+    ):
+        schema = value.get(keyword)
+        if keyword == "items" and isinstance(schema, list):  # Tuple form in older drafts.
+            for item in schema:
+                _schema_refs(item)
+        else:
+            _schema_refs(schema)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -521,7 +564,7 @@ class LLMReply:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class ToolSpec:
+class ToolSpec(_JsonDTO):
     name: str
     description: str
     input_schema: JsonObject
@@ -543,7 +586,7 @@ class ToolSpec:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class ToolCall:
+class ToolCall(_JsonDTO):
     tool_name: str
     arguments: JsonObject
 
@@ -571,7 +614,7 @@ class ToolContext:
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
-class ToolResult:
+class ToolResult(_JsonDTO):
     call_id: Id
     tool_name: str
     status: Literal["ok", "error"]
@@ -610,7 +653,7 @@ class CandidateAnswer:
             self.text.encode("utf-8")
         except UnicodeEncodeError as exc:
             raise ContractError("candidate must be UTF-8 encodable") from exc
-        _paths(self.evidence_paths, "evidence_paths")
+        _paths(self.evidence_paths, "evidence_paths", unique=False)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

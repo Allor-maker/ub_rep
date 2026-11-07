@@ -35,7 +35,7 @@ $env:PYTHONPATH = 'src'
 python -S -m unittest discover -s tests -v
 ```
 
-22 теста C01. Примеры импорта: `from nsu_budget_agent.contracts.models import TaskSpec`
+27 тестов C01. Примеры импорта: `from nsu_budget_agent.contracts.models import TaskSpec`
 и `from nsu_budget_agent.contracts.ports import Solver, SolverContext`.
 Сырые строки относительных путей проверяйте через `parse_rel_path` до PurePosixPath.
 SDK smoke запускается отдельно по [отчёту A1](docs/a1-report.md), без LLM/API.

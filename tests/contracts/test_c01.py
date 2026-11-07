@@ -6,11 +6,13 @@ import dataclasses
 import inspect
 import json
 import os
+import pickle
 import subprocess
 import sys
 import types
 import typing
 import unittest
+from copy import copy, deepcopy
 from pathlib import Path, PurePosixPath
 
 from nsu_budget_agent.contracts import models as m
@@ -366,32 +368,146 @@ class C01(unittest.TestCase):
     def test_json_is_copied_and_deeply_immutable_but_serializable(self):
         raw = {"nested": [{"flag": True, "count": 1, "ratio": 0.5, "nil": None}]}
         call = m.ToolCall(tool_name="read", arguments=raw)
+        expected = deepcopy(raw)
         raw["nested"][0]["count"] = 99
         self.assertEqual(call.arguments["nested"][0]["count"], 1)
         for mutation in (
-            lambda: call.arguments.update({"x": 1}),
+            lambda: dict.update(call.arguments, {"x": 1}),
             lambda: call.arguments.__setitem__("x", 1),
             lambda: call.arguments.pop("nested"),
             lambda: call.arguments.clear(),
             lambda: call.arguments.__ior__({"x": 1}),
             lambda: call.arguments.__init__({"x": 1}),
-            lambda: call.arguments["nested"].append(1),
+            lambda: list.append(call.arguments["nested"], 1),
             lambda: call.arguments["nested"].__setitem__(0, 1),
             lambda: call.arguments["nested"].__iadd__([1]),
             lambda: call.arguments["nested"].__imul__(2),
             lambda: call.arguments["nested"].__init__([1]),
             lambda: call.arguments["nested"][0].__setitem__("count", 3),
         ):
-            with self.subTest(mutation=mutation), self.assertRaises(m.ContractError):
+            with self.subTest(mutation=mutation):
                 mutation()
+                self.assertEqual(call.arguments, expected)
         self.assertEqual(json.loads(json.dumps(call.arguments))["nested"][0]["count"], 1)
         self.assertEqual(dataclasses.asdict(call)["arguments"], call.arguments)
+        for clone in (copy(call), deepcopy(call), pickle.loads(pickle.dumps(call))):
+            view = clone.arguments
+            dict.update(view["nested"][0], {"count": 999})
+            list.append(view["nested"], "new")
+            self.assertEqual(call.arguments, expected)
+            self.assertEqual(clone.arguments, expected)
+        for view in (
+            call.arguments,
+            json.loads(json.dumps(call.arguments)),
+            dataclasses.asdict(call)["arguments"],
+        ):
+            view["nested"][0]["count"] = 1000
+            self.assertEqual(call.arguments, expected)
         result = m.ToolResult(call_id="r", tool_name="read", status="ok", data=raw)
         raw["nested"].clear()
         self.assertEqual(len(result.data["nested"]), 1)
         spec = dataclasses.replace(self.dto["ToolSpec"], input_schema={"enum": [1, 2]})
-        with self.assertRaises(m.ContractError):
-            spec.input_schema["enum"].append(3)
+        spec.input_schema["enum"].append(3)
+        self.assertEqual(spec.input_schema, {"enum": [1, 2]})
+
+    def test_json_views_preserve_b_types_and_roundtrips(self):
+        for name, field in (
+            ("ToolCall", "arguments"),
+            ("ToolSpec", "input_schema"),
+            ("ToolSpec", "output_schema"),
+            ("ToolResult", "data"),
+        ):
+            value = {"nested": [True, None, 0, 0.5, "текст"]}
+            dto = dataclasses.replace(self.dto[name], **{field: value})
+            with self.subTest(dto=name, field=field):
+                view = getattr(dto, field)
+                self.assertIs(type(view), dict)
+                self.assertIs(type(view["nested"]), list)
+                value["nested"].append("input mutation")
+                self.assertNotEqual(getattr(dto, field), value)
+                for clone in (
+                    deepcopy(dto),
+                    pickle.loads(pickle.dumps(dto)),
+                    dataclasses.replace(dto),
+                ):
+                    getattr(clone, field)["nested"].clear()
+                    self.assertEqual(getattr(clone, field), view)
+                self.assertEqual(json.loads(json.dumps(view)), view)
+        for value in (None, False, 0, 0.5, "text", [1, {"x": 2}]):
+            dto = dataclasses.replace(self.dto["ToolResult"], data=value)
+            self.assertEqual(dto.data, value)
+            self.assertIs(type(dto.data), type(value))
+
+    def test_schema_refs_only_in_schema_positions(self):
+        data = {"$ref": "https://example.org/data"}
+        positives = [
+            {"type": "object", "properties": {"$ref": {"type": "string"}}},
+            {"$ref": "#/$defs/local"},
+            {"$ref": ""},
+            {"dependencies": {"x": ["$ref"]}},
+            {"x-annotation": data},
+            {"allOf": [True, {"properties": {"x": {"$ref": "#/$defs/x"}}}]},
+        ]
+        positives.extend(
+            {key: value}
+            for key, value in (
+                ("const", data),
+                ("default", data),
+                ("examples", [data]),
+                ("enum", [data]),
+            )
+        )
+        for schema in positives:
+            with self.subTest(schema=schema):
+                spec = dataclasses.replace(self.dto["ToolSpec"], input_schema=schema)
+                self.assertEqual(spec.input_schema, schema)
+        remote = {"$ref": "https://example.org/schema"}
+        nested = [remote]
+        nested.extend({"$ref": value} for value in ("other.json", "//example.org/schema", 1))
+        nested.extend(
+            {key: {"$ref": remote}}
+            for key in (
+                "properties",
+                "patternProperties",
+                "$defs",
+                "definitions",
+                "dependentSchemas",
+                "dependencies",
+            )
+        )
+        nested.extend(
+            {key: [remote]} for key in ("allOf", "anyOf", "oneOf", "prefixItems", "items")
+        )
+        nested.extend(
+            {key: remote}
+            for key in (
+                "items",
+                "additionalProperties",
+                "additionalItems",
+                "contains",
+                "propertyNames",
+                "not",
+                "if",
+                "then",
+                "else",
+                "unevaluatedItems",
+                "unevaluatedProperties",
+                "contentSchema",
+            )
+        )
+        nested.extend(
+            {key: "https://example.org/schema"} for key in ("$dynamicRef", "$recursiveRef")
+        )
+        for schema in nested:
+            for field in ("input_schema", "output_schema"):
+                with self.subTest(schema=schema, field=field):
+                    self.invalid("ToolSpec", **{field: schema})
+
+    def test_candidate_evidence_paths_allow_duplicates_but_still_validate(self):
+        path = m.parse_rel_path("a.txt")
+        candidate = m.CandidateAnswer(text="ok", evidence_paths=(path, path))
+        self.assertEqual(candidate.evidence_paths, (path, path))
+        self.invalid("CandidateAnswer", evidence_paths=(path, PurePosixPath("../secret")))
 
     def test_non_json_cycles_remote_refs_and_callable_schema_rejected(self):
         cycle = []
@@ -562,6 +678,88 @@ class C01(unittest.TestCase):
                 method for method, obj in vars(cls).items() if inspect.iscoroutinefunction(obj)
             }
             self.assertEqual(actual, expected[name], name)
+
+    def test_a_port_signatures_match_v1(self):
+        # Public names/types/defaults only; no implementation or SDK assumptions.
+        expected = {
+            p.SolverRegistry: [
+                ("register", {"solver": p.Solver}, type(None), False),
+                ("all_solvers", {}, tuple[p.Solver, ...], False),
+                ("get", {"solver_id": str}, p.Solver, False),
+            ],
+            p.Planner: [
+                (
+                    "choose",
+                    {
+                        "tasks": tuple[m.TaskSpec, ...],
+                        "offers": tuple[m.SolverOffer, ...],
+                        "progress": tuple[m.TaskProgress, ...],
+                        "budget": m.BudgetSnapshot,
+                        "config": m.RunConfig,
+                        "now": float,
+                    },
+                    m.PlanDecision | None,
+                    False,
+                )
+            ],
+            p.BudgetController: [
+                ("open_attempt", {"attempt_id": str, "budget": m.AttemptBudget}, type(None), False),
+                (
+                    "reserve",
+                    {
+                        "request_id": str,
+                        "attempt_id": str,
+                        "model": m.ModelId,
+                        "input_bound_tokens": int,
+                        "output_cap_tokens": int,
+                    },
+                    m.BudgetLease,
+                    False,
+                ),
+                ("mark_dispatched", {"request_id": str}, m.BudgetLease, False),
+                ("release_unsent", {"request_id": str}, m.BudgetLease, False),
+                ("record_usage", {"usage": m.UsageRecord}, m.BudgetLease, False),
+                ("snapshot", {"attempt_id": str | None}, m.BudgetSnapshot, False),
+                ("close_attempt", {"attempt_id": str}, type(None), False),
+                ("halt", {"error": m.ErrorInfo}, type(None), False),
+            ],
+            p.LLMGateway: [
+                (
+                    "bind",
+                    {"attempt_id": str, "step_index": int, "budget": m.AttemptBudget},
+                    p.LLMSession,
+                    False,
+                )
+            ],
+        }
+        for protocol, methods in expected.items():
+            for name, arguments, result, is_async in methods:
+                with self.subTest(protocol=protocol.__name__, method=name):
+                    method = getattr(protocol, name)
+                    signature = inspect.signature(method)
+                    self.assertEqual(list(signature.parameters), ["self", *arguments])
+                    self.assertEqual(typing.get_type_hints(method), {**arguments, "return": result})
+                    self.assertEqual(inspect.iscoroutinefunction(method), is_async)
+                    for parameter in signature.parameters.values():
+                        self.assertEqual(parameter.kind, inspect.Parameter.POSITIONAL_OR_KEYWORD)
+                        if name == "snapshot" and parameter.name == "attempt_id":
+                            self.assertIsNone(parameter.default)
+                        else:
+                            self.assertIs(parameter.default, inspect.Parameter.empty)
+
+    def test_sdk_probe_hook_reports_only_selected_socket_events(self):
+        from nsu_budget_agent.orchestration.sdk_probe import _offline_audit
+
+        # Synthetic audit events only: no sockets, SDK import or network request.
+        for event, args in (
+            ("socket.connect", (None, ("192.0.2.1", 443))),
+            ("socket.getaddrinfo", ("example.org", 443)),
+        ):
+            with self.subTest(event=event), self.assertRaises(RuntimeError):
+                _offline_audit(event, args)
+        _offline_audit("socket.connect", (None, ("127.0.0.1", 443)))
+        _offline_audit("socket.sendto", (None, ("192.0.2.1", 443)))
+        self.assertNotIn("openjiuwen", sys.modules)
 
     def test_import_is_stdlib_only_without_site_packages_or_network(self):
         script = """
