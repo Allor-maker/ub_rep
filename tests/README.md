@@ -1,7 +1,8 @@
 # Проверки
 
 Реализованы 27 проверок C01, 24 бюджетных C04–C06, 4 проверки конфигурации
-и 32 mock HTTP проверки A3 в `unit/test_llm_gateway.py` (всего 87).
+и 35 mock HTTP проверок A3 в `unit/test_llm_gateway.py`, а также 51 проверка A4
+(всего 141; в текущем окружении Windows пять платформенных проверок пропущены).
 Полный suite требует Python 3.11 и HTTPX; C01 отдельно проверяет импорт с `-S`.
 Из корня репозитория в PowerShell:
 
@@ -36,3 +37,11 @@ Gateway и связанные Protocol проверяются также чер�
 есть/нет, утечка expected через чтение, неподдерживаемость и ошибка, отмена,
 параллельный бюджет, usage/reasoning, timeout без usage, rate limit, атомарная
 публикация, неизменность тестов, отсутствие runtime-загрузок, две отборочные задачи.
+
+## A4
+
+`unit/test_task_loader.py`, `unit/test_planner.py` и `contracts/test_a4_planning.py`
+проверяют read-only загрузку, безопасный ввод, реестр, чистое планирование и coverage
+с fake-компонентами B. `contracts/typecheck_planning.py` проверяет неизменные порты.
+Полный discovery CI включает новые тесты автоматически; POSIX и symlink проверки
+могут быть пропущены на Windows и должны выполниться в Linux CI.
