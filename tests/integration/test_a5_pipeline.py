@@ -227,13 +227,23 @@ class PipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(reports[-1]["workflow_invocations"], 1)
         self.assertEqual((root / "answer.txt").read_bytes(), b"  synthetic result\n")
 
-    async def test_missing_components_fails_closed(self):
+    async def test_unavailable_explicit_components_fail_closed(self):
         from nsu_budget_agent.orchestration.cli import main
 
         root = self.task()
         with patch.dict(os.environ, {"BUDGET": "100"}):
             self.assertEqual(
-                main(["--tasks-dir", str(self.tasks), "--budget-unit", "units_x10"]), 2
+                main(
+                    [
+                        "--tasks-dir",
+                        str(self.tasks),
+                        "--budget-unit",
+                        "units_x10",
+                        "--components",
+                        "unavailable_b_package:build",
+                    ]
+                ),
+                2,
             )
         self.assertFalse((root / "answer.txt").exists())
 

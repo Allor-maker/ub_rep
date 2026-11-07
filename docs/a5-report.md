@@ -4,6 +4,11 @@
 Gateway A3, Planner A4 и компоненты B не изменены. A6/A7 не реализованы.
 NeuralDeep не вызывался; commit/push/merge не выполнялись.
 
+После этого этапа добавлен [B-minimal](b-minimal-report.md): production factory теперь
+выбирается CLI по умолчанию, без fake. Описание отсутствующих B и обязательного
+--components ниже относится к исходному состоянию A5-lite; для текущего запуска
+используйте отчёт B. Требование явной единицы BUDGET и ограничения A5 остаются.
+
 ## Что работает
 
 `run_agent.py → DirectoryTaskLoader → BaselinePlanner → JiuwenAdapter → Solver.step
