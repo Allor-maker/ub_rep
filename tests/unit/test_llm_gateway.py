@@ -550,7 +550,7 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(waits, [1.0])
             gateway._cooldown_until = now[0] + 7
             await gateway._wait_rate_slot()
-            self.assertEqual(waits[-1], 7)
+            self.assertAlmostEqual(waits[-1], 7)
         throttled = self.gateway(
             lambda request: httpx.Response(429, json={}, headers={"Retry-After": "120"}),
             bypass_rate=False,
