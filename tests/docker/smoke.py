@@ -203,7 +203,7 @@ def execute(mode: str, image: str, tasks: Path, scratch: Path) -> dict:
             "--memory",
             "4g",
             "--cpus",
-            "4",
+            "2",
             "--tmpfs",
             "/tmp:rw,size=2g,mode=1777",
             "--mount",
