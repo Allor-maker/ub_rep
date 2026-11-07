@@ -1,0 +1,77 @@
+name: A1 Linux CI
+
+"on":
+  push:
+    branches: [feature/a1-contracts]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a1-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  PYTHONPATH: src
+  MYPYPATH: src
+  PYTHONDONTWRITEBYTECODE: "1"
+  PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+jobs:
+  contracts:
+    name: C01, Ruff and Mypy (Python 3.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: C01 without site-packages or SDK
+        run: python -S -m unittest discover -s tests/contracts -p test_c01.py -v
+      - name: Install development checks
+        run: python -m pip install --timeout 30 --retries 2 -r requirements-dev.txt
+      - name: Ruff lint
+        run: python -m ruff check src tests
+      - name: Ruff formatting
+        run: python -m ruff format --check src tests
+      - name: Mypy contracts and B consumer examples
+        run: python -m mypy src/nsu_budget_agent/contracts tests/contracts/typecheck_consumers.py
+
+  sdk:
+    name: openJiuwen 0.1.19 Linux probe (Python 3.11)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-sdk-probe.txt
+      - name: Install SDK and resolve Linux dependencies
+        timeout-minutes: 10
+        # Resolve for Linux; the Windows snapshot is deliberately not used.
+        run: python -m pip install --timeout 30 --retries 2 -r requirements-sdk-probe.txt
+      - name: Check installed SDK dependencies
+        run: python -m pip check
+      - name: SDK workflow, cancellation and deadline probe (no LLM calls)
+        timeout-minutes: 3
+        # The probe guards selected socket events, not all network operations.
+        # No API keys or secrets are provided to either job.
+        env:
+          HF_HUB_OFFLINE: "1"
+          TRANSFORMERS_OFFLINE: "1"
+        run: python -m nsu_budget_agent.orchestration.sdk_probe
