@@ -5,6 +5,10 @@ Ledger A2, Planner A4 и настоящий openJiuwen Workflow A5. NeuralDeep, 
 API, subprocess и task-код не вызываются. Новых зависимостей нет. Commit/push/merge
 не выполнялись. LLM fallback, coding publication, adaptive scheduler и Docker не добавлены.
 
+Последующее изменение A6 добавило Docker baseline и default `competition_tokens`
+в CLI; указания об обязательном --budget-unit ниже отражают исходный B-minimal.
+Текущий запуск, явный override и статус контейнерных проверок: [A6](a6-report.md).
+
 ## Production-компоненты
 
 - `tools/local.py`: LocalToolExecutor с read-only инструментами:

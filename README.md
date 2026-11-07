@@ -4,22 +4,24 @@
 набрать максимальную сумму наград на 100 задачах при общем ограничении токенов
 и времени. При равных баллах выигрывает меньший расход токенов.
 
-**Состояние: A1–A4, A5-lite и B-minimal: workflow с production-решателями без LLM.** Добавлены 34 DTO,
+**Состояние: A1–A5-lite, B-minimal и Docker baseline A6.** Добавлены 34 DTO,
 14 Protocol и отдельный offline SDK smoke для openJiuwen 0.1.19 на Windows/Python 3.11.
 Gateway проверен только через mock HTTP; strict требует явно проверенных bounds/profile.
 `run_agent.py` исполняет реальный openJiuwen workflow с подключаемыми B-компонентами;
 По умолчанию подключены детерминированные math/search/data_analysis и проверка
-по публичным данным; fake B доступны только в integration tests. Docker ещё предстоит.
-Linux-проверка SDK остаётся открытой. Вызовов NeuralDeep и конкурсного результата нет.
+по публичным данным; fake B доступны только в integration tests. Dockerfile подготовлен;
+его сборка и Linux-проверка остаются открытыми. Вызовов NeuralDeep и конкурсного результата нет.
 Выполненные проверки и ограничения: [отчёт A1](docs/a1-report.md),
 [отчёт A2](docs/a2-report.md), [отчёт A3](docs/a3-report.md), [отчёт A4](docs/a4-report.md),
 [отчёт A5-lite с запуском и ограничениями](docs/a5-report.md),
-[B-minimal: охват, измеренные результаты и запуск](docs/b-minimal-report.md).
-`BUDGET` поддерживается с обязательным явным выбором единиц.
+[B-minimal: охват и результаты](docs/b-minimal-report.md),
+[A6: Docker-команды, проверки и открытые риски](docs/a6-report.md).
+По умолчанию `BUDGET` трактуется как competition_tokens; `--budget-unit` позволяет
+явно выбрать внутренние units_x10, единицы организаторов ещё требуют подтверждения.
 
 ```powershell
 $env:BUDGET = '0'
-python run_agent.py --tasks-dir <fresh-task-copy> --budget-unit units_x10
+python run_agent.py --tasks-dir <fresh-task-copy>
 ```
 
 API-ключи не нужны. Поддерживаются только явно распознаваемые вычисления, CSV-запросы
@@ -41,7 +43,7 @@ API-ключи не нужны. Поддерживаются только явн
    содержит только настройки инструментов; `pip install .` не поддерживается.
    Сборка и финальные Linux-зависимости относятся к A6.
 
-## Проверка A1–A5-lite и B-minimal
+## Проверка A1–A6 и B-minimal
 
 Python 3.11, из корня репозитория в PowerShell; полный suite требует HTTPX и SDK:
 
@@ -52,7 +54,7 @@ $env:PYTHONPATH = 'src'
 .\.venv-a1\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-204 теста: C01, бюджетные C04–C06/конфигурация, A3 с mock HTTP, загрузка и планирование A4,
+205 тестов: C01, бюджетные C04–C06/конфигурация, A3 с mock HTTP, загрузка и планирование A4,
 SDK/publisher A5-lite и production B. В текущем Windows шесть платформенных пропусков.
 Три проверки внешних публичных наборов пропускаются, если наборы не предоставлены.
 Примеры импорта:
