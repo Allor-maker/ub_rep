@@ -28,8 +28,14 @@ def excluded(name: str) -> bool:
     return (
         lower.startswith(".")
         or lower in ("task.json", "answer.txt", "__pycache__", "__macosx", "node_modules")
-        or lower == "expected"
-        or lower.startswith(("expected.", "expected_"))
+        or any(
+            lower == label
+            or (
+                lower.startswith(label)
+                and (not lower[len(label)].isalnum() or lower[len(label)].isdecimal())
+            )
+            for label in ("expected", "gold")
+        )
     )
 
 

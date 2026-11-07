@@ -1,4 +1,4 @@
-"""Trusted composition entry point; no built-in solver or fixture answers."""
+"""Trusted composition entry point; defaults to offline production B-minimal."""
 
 import argparse
 import asyncio
@@ -93,7 +93,11 @@ def main(argv: list[str] | None = None, *, factory: ComponentFactory | None = No
         required=True,
         help="explicit interpretation of BUDGET; organizer units are unconfirmed",
     )
-    parser.add_argument("--components", help="trusted module:factory; never read from a task")
+    parser.add_argument(
+        "--components",
+        default="nsu_budget_agent.solvers.composition:build",
+        help="trusted module:factory; defaults to offline B-minimal production components",
+    )
     parser.add_argument("--staging-dir", type=Path)
     parser.add_argument("--timeout-s", type=float, default=120)
     parser.add_argument("--mode", choices=("auto", "coverage", "portfolio"), default="auto")

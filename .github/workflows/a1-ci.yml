@@ -1,8 +1,8 @@
-name: A1-A5-lite Linux CI
+name: A1-A5 and B-minimal Linux CI
 
 "on":
   push:
-    branches: [feature/a1-contracts, feature/a2-budget-ledger, feature/a3-llm-gateway, feature/a4-planner, feature/a5-orchestration]
+    branches: [feature/a1-contracts, feature/a2-budget-ledger, feature/a3-llm-gateway, feature/a4-planner, feature/a5-orchestration, feature/b-minimal]
   pull_request:
     branches: [main]
 
@@ -25,7 +25,7 @@ env:
 
 jobs:
   contracts:
-    name: A1-A5 tests, real SDK workflow, Ruff and Mypy (Python 3.11)
+    name: A1-A5 and B-minimal tests, real SDK, Ruff and Mypy (Python 3.11)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -42,7 +42,7 @@ jobs:
             requirements-sdk-probe.txt
       - name: Install A1-A5 checks and SDK (Linux dependency resolution)
         run: python -m pip install --timeout 30 --retries 2 -r requirements-dev.txt -r requirements-llm.txt -r requirements-sdk-probe.txt
-      - name: All A1-A5 tests (real SDK, fake B, no live API)
+      - name: All A1-A5 and B-minimal tests (no live API)
         timeout-minutes: 5
         env:
           HF_HUB_OFFLINE: "1"
@@ -57,12 +57,14 @@ jobs:
           python -m mypy src/nsu_budget_agent/contracts src/nsu_budget_agent/budget
           src/nsu_budget_agent/llm src/nsu_budget_agent/telemetry
           src/nsu_budget_agent/task_io src/nsu_budget_agent/planning
+          src/nsu_budget_agent/tools src/nsu_budget_agent/solvers src/nsu_budget_agent/validation
           src/nsu_budget_agent/orchestration/engine.py
           src/nsu_budget_agent/orchestration/runtime.py
           src/nsu_budget_agent/orchestration/cli.py src/nsu_budget_agent/submission run_agent.py
           tests/contracts/typecheck_consumers.py tests/contracts/typecheck_budget.py
           tests/contracts/typecheck_llm.py tests/contracts/typecheck_planning.py
           tests/contracts/typecheck_orchestration.py
+          tests/contracts/typecheck_b_minimal.py
 
   sdk:
     name: openJiuwen 0.1.19 Linux probe (Python 3.11)
