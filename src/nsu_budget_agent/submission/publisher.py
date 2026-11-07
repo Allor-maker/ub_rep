@@ -136,7 +136,11 @@ class AnswerOnlyPublisher:
                 try:
                     flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
                     if os.name == "nt":
-                        descriptor = os.open(directory.path / temporary, flags | os.O_BINARY, 0o600)
+                        descriptor = os.open(
+                        directory.path / temporary,
+                        flags | getattr(os, "O_BINARY", 0),
+                        0o600,
+                    )
                     else:
                         descriptor = os.open(
                             temporary,
