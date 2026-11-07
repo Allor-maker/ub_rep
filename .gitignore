@@ -1,0 +1,66 @@
+# Python and build products
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+my_env/
+.python-version
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Local editor and operating system state
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+__MACOSX/
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# Credentials, local configuration and registration materials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/
+registration_id.txt
+team.json
+configs/*.local.*
+
+# Task workspaces, private datasets and generated experiment artifacts
+/data/local/*
+!/data/local/.gitkeep
+/experiments/runs/*
+!/experiments/runs/.gitkeep
+/task-dir/
+/task-dir.zip
+answer.txt
+logs/
+*.log
+tmp/
+temp/
+.cache/
+
+# Binary model artifacts must be reviewed explicitly before inclusion
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.joblib
