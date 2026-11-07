@@ -1,6 +1,6 @@
 # Development-tool settings only. This is NOT an installable package manifest.
-# Runtime/dev dependencies, exact versions and build backend are pending A1.
-# Do not run `pip install .` or assume pytest/ruff are already installed.
+# Optional checks: requirements-dev.txt; SDK probe: requirements-sdk-probe.txt.
+# Final runtime lock and build backend are pending A6; `pip install .` is unsupported.
 
 [tool.ruff]
 target-version = "py311"
