@@ -21,6 +21,12 @@ Gateway проверен только через mock HTTP; strict требуе�
 production LLM не включается; live-диагностика отдельно требует флаг, ключ и бюджет.
 [A3.6](docs/a36-report.md) добавляет однократный LLM-to-Tools план для явно
 проверяемых search/CSV-инструкций через ту же opt-in strict factory.
+[A7.1](docs/a71-report.md) объединяет бесплатный проход, отдельный Reviewer и
+generic Solver для неизвестных формулировок. Подключение:
+`--components nsu_budget_agent.solvers.composition:build_with_router`.
+Действуют те же требования strict compatibility adapter; готового trusted
+адаптера NeuralDeep нет. В JSON-отчёте CLI доступны `decision_routes`.
+Принятые по LLM-review ответы явно остаются несертифицированными.
 По умолчанию `BUDGET` трактуется как competition_tokens; `--budget-unit` позволяет
 явно выбрать внутренние units_x10, единицы организаторов ещё требуют подтверждения.
 

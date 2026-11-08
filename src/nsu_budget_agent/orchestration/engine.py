@@ -4,7 +4,11 @@ import asyncio
 import importlib.metadata
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 from uuid import uuid4
+
+if TYPE_CHECKING:
+    from .decision import DecisionController
 
 from nsu_budget_agent.contracts.models import (
     AttemptBudget,
@@ -69,10 +73,12 @@ class JiuwenAdapter:
         gateway: LLMGateway,
         tools: ToolExecutor,
         workspaces: WorkspaceStore,
+        decision_controller: "DecisionController | None" = None,
     ) -> None:
         if importlib.metadata.version("openjiuwen") != "0.1.19":
             raise ContractError("A5-lite requires openjiuwen 0.1.19")
         self.ledger, self.gateway, self.tools, self.workspaces = ledger, gateway, tools, workspaces
+        self.decision_controller = decision_controller
         self.results: list[AttemptResult] = []
         self.workflow_invocations = 0
         self.component_steps = 0
@@ -124,7 +130,16 @@ class JiuwenAdapter:
                 tools=catalog,
                 llm=session,
             )
-            action = await state.solver.step(context, state.history)
+            controller = self.decision_controller
+            if controller is not None and state.solver.solver_id == "local_router":
+                action = await controller.free.step(context, state.history)
+            elif controller is not None and state.solver.solver_id == "generic":
+                internal_action = await controller.advance(context, state.history)
+                if internal_action is None:
+                    return  # A5 role transition consumes this SDK step, not a SolverStep.
+                action = internal_action
+            else:
+                action = await state.solver.step(context, state.history)
             if isinstance(action, CandidateAnswer):
                 if len(action.text.encode("utf-8")) > state.budget.tool_limits.max_output_bytes:
                     state.result = self._result(

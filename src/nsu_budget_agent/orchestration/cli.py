@@ -72,6 +72,15 @@ async def _run(args, factory: ComponentFactory) -> int:
                     "held_units": report.budget.held_units,
                     "workflow_invocations": report.workflow_invocations,
                     "component_steps": report.component_steps,
+                    "decision_routes": {
+                        trace.task_id: {
+                            "state": trace.state.value,
+                            "transitions": [state.value for state, _ in trace.events],
+                            "llm_requests_attempted": trace.llm_requests_attempted,
+                            "independent_semantics": trace.independent_semantics,
+                        }
+                        for trace in report.decision_traces
+                    },
                     "sdk": "openjiuwen 0.1.19",
                     "accounting_mode": config.accounting_mode,
                 },

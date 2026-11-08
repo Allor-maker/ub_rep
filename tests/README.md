@@ -45,6 +45,20 @@ Gateway и связанные Protocol проверяются также чер�
 параллельный бюджет, usage/reasoning, timeout без usage, rate limit, атомарная
 публикация, неизменность тестов, отсутствие runtime-загрузок, две отборочные задачи.
 
+## A7.1
+
+`unit/test_a71_decision.py` проверяет таблицу переходов, единственное владение
+состоянием, fingerprint запросов и JSON-контракт Reviewer.
+`integration/test_a71_router.py` запускает настоящий SDK, A2/A3 MockTransport,
+инструменты, Validator и A5. Проверяются частичные кандидаты, review/replan,
+неизвестные инструкции, tool_plan/direct_answer/decline, независимые вычисления,
+ошибки JSON/evidence, инъекции, held usage, deadline и бюджет всего портфеля.
+Скриптовое сравнение B-minimal/A3.6/A7.1 не измеряет понимание языка моделью;
+метрики и риски подробно приведены в [отчёте A7.1](../docs/a71-report.md).
+Исправления независимого review проверяются в `integration/test_a71_review_fixes.py`,
+`unit/test_a71_allocation.py` и `unit/test_a71_certification.py`: source privacy,
+отвергнутые кандидаты, независимые вычисления, run isolation, v1 stop и 100 задач A4/A2.
+
 ## A4
 
 `unit/test_task_loader.py`, `unit/test_planner.py` и `contracts/test_a4_planning.py`

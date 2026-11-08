@@ -6,6 +6,8 @@ from pathlib import PurePosixPath
 
 from nsu_budget_agent.contracts.models import JsonValue, TaskSpec, ToolCall, parse_rel_path
 
+from .sources import sensitive, simple_entity
+
 
 class Unsupported(ValueError):
     pass
@@ -141,6 +143,8 @@ def plan(task: TaskSpec) -> Plan:
     for pattern, chain, field in search:
         match = re.fullmatch(kb_prefix + pattern, text, re.I)
         if match:
+            if not simple_entity(match["entity"]):
+                raise Unsupported("entity contains an unsupported qualification or alternative")
             directory = (
                 parse_rel_path(match["directory"].rstrip("/")) if match["directory"] else None
             )
@@ -148,6 +152,7 @@ def plan(task: TaskSpec) -> Plan:
                 a.path.as_posix()
                 for a in task.artifacts
                 if a.path.suffix.casefold() == ".md"
+                and not sensitive(a.path)
                 and (directory is None or a.path.is_relative_to(directory))
             ]
             if not paths:
@@ -251,6 +256,8 @@ def plan(task: TaskSpec) -> Plan:
 
 
 def _csv_plan(task: TaskSpec, path: PurePosixPath, arguments: dict) -> Plan:
+    if sensitive(path):
+        raise Unsupported("sensitive CSV source is forbidden")
     if path not in {a.path for a in task.artifacts}:
         raise Unsupported("specified CSV is not an allowed artifact")
     return Plan(
