@@ -54,6 +54,25 @@ def arithmetic(arguments: dict, check: Callable[[], None]) -> str:
             check()
             if depth > 16:
                 raise ValueError("expression depth limit")
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "lcm"
+                and not node.keywords
+                and 2 <= len(node.args) <= 16
+            ):
+                values = [evaluate(argument, depth + 1) for argument in node.args]
+                if any(v.denominator != 1 or not 1 <= v <= 1_000_000 for v in values):
+                    raise ValueError("LCM requires bounded positive integers")
+                result = 1
+                for value in values:
+                    operand = int(value)
+                    gcd_left, gcd_right = result, operand
+                    while gcd_right:
+                        check()
+                        gcd_left, gcd_right = gcd_right, gcd_left % gcd_right
+                    result = result // gcd_left * operand
+                return bounded(Fraction(result))
             if isinstance(node, ast.Constant) and type(node.value) in (int, float):
                 # Recover the decimal lexeme; never account through binary float.
                 return number(ast.get_source_segment(expression, node) or "")
@@ -169,9 +188,20 @@ def csv_query(text: str, arguments: dict, check: Callable[[], None]) -> str:
             raise ValueError("invalid predicate")
         if (
             predicate["column"] not in header
-            or predicate["op"] not in ("eq", "ge", "le")
-            or not isinstance(predicate["value"], str)
-            or not predicate["value"].strip()
+            or predicate["op"] not in ("eq", "ge", "le", "in")
+            or (
+                predicate["op"] != "in"
+                and (not isinstance(predicate["value"], str) or not predicate["value"].strip())
+            )
+            or (
+                predicate["op"] == "in"
+                and (
+                    not isinstance(predicate["value"], list)
+                    or not 1 <= len(predicate["value"]) <= 16
+                    or any(not isinstance(v, str) or not v.strip() for v in predicate["value"])
+                    or len(set(predicate["value"])) != len(predicate["value"])
+                )
+            )
         ):
             raise ValueError("invalid filter")
     total, count = Fraction(0), 0
@@ -207,6 +237,8 @@ def csv_query(text: str, arguments: dict, check: Callable[[], None]) -> str:
             left, right = row[predicate["column"]], predicate["value"]
             if predicate["op"] == "eq":
                 accepted &= left == right
+            elif predicate["op"] == "in":
+                accepted &= left in right
             elif predicate["op"] == "ge":
                 accepted &= number(left) >= number(right)
             else:
@@ -250,7 +282,7 @@ def markdown_lookup(
         name = lines[0][2:].strip()
         properties = {}
         for line in lines[1:]:
-            match = re.fullmatch(r"([A-Za-z][A-Za-z ]*):\s*(\S.*)", line)
+            match = re.fullmatch(r"([A-Za-z0-9][A-Za-z0-9 ]{0,127}):\s*(\S.*)", line)
             if not match or match[1].casefold() in properties:
                 raise ValueError("ambiguous or unstructured Markdown profile")
             properties[match[1].casefold()] = match[2].strip()
@@ -267,6 +299,25 @@ def markdown_lookup(
             raise ValueError("requested fact missing")
         evidence.append(path)
         entity = properties[relation.casefold()]
-    if field.casefold() in ("born", "founded") and not re.fullmatch(r"\d{1,4}", entity):
+    if field.casefold() in (
+        "born",
+        "founded",
+        "first foreign subsidiary acquisition year",
+    ) and not re.fullmatch(r"\d{1,4}", entity):
         raise ValueError("invalid explicit year")
+    if field.casefold().endswith("initiative launch month") and entity not in (
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ):
+        raise ValueError("invalid explicit English month")
     return entity, sorted(set(evidence))

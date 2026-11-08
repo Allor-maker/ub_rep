@@ -8,6 +8,10 @@ from nsu_budget_agent.solvers.sources import selected_sources, simple_entity
 
 
 def instruction_matches(task: TaskSpec, call: ToolCall) -> bool:
+    from nsu_budget_agent.solvers.language import csv_call, simple_search, stock_call
+
+    if call in (stock_call(task.instruction), simple_search(task), csv_call(task)):
+        return True
     # Only the non-semantic, explicitly allowed execution/output suffix policy
     # is shared. Operation/condition extraction below is separate from plan().
     try:
@@ -81,6 +85,11 @@ def instruction_matches(task: TaskSpec, call: ToolCall) -> bool:
             flags=re.I,
         )
         search_patterns: tuple[tuple[str, list[str], str], ...] = (
+            (
+                r"In which year did (.+?)'s employer acquire its first foreign subsidiary\?",
+                ["Employer"],
+                "First foreign subsidiary acquisition year",
+            ),
             (
                 r"In which city is the headquarters of (.+?)'s employer\?",
                 ["Employer"],

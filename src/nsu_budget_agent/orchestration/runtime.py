@@ -71,6 +71,7 @@ class RunReport:
     component_steps: int
     assessment_errors: tuple[AssessmentFailure, ...] = ()
     decision_traces: tuple["DecisionTrace", ...] = ()
+    validations: tuple[ValidationResult, ...] = ()
 
 
 class AgentRunner:
@@ -94,6 +95,10 @@ class AgentRunner:
                 previous.model,
                 output_cap=previous.output_cap,
                 reservation_bound=previous.reservation_bound,
+                review_model=previous.review_model,
+                reserve_mandatory_calls=previous.reserve_mandatory_calls,
+                require_independent=previous.require_independent,
+                length_retry=previous.length_retry,
             )
             validator = getattr(components.validator, "for_run")(store)
             components = replace(
@@ -182,6 +187,8 @@ class AgentRunner:
             self._running = False
 
     async def _run(self, tasks_dir: Path) -> RunReport:
+        validations: list[ValidationResult] = []
+
         # Initialize the installed SDK before assigning any attempt deadline.
         def prepare_sdk():
             from openjiuwen.core.workflow import Workflow  # type: ignore[import-untyped]
@@ -228,6 +235,7 @@ class AgentRunner:
         # evidence/validation failure would therefore have no new evidence.
         exhausted_routes: set[tuple[str, str]] = set()
         budget_deferred_tasks: set[str] = set()
+        stop_paid = False
         loop = asyncio.get_running_loop()
         try:
             while loop.time() < self.config.deadline_monotonic:
@@ -237,6 +245,7 @@ class AgentRunner:
                     offer
                     for offer in offers
                     if (offer.task_id, offer.solver_id) not in exhausted_routes
+                    and (not stop_paid or offer.solver_id in self.components.deterministic_solvers)
                 )
                 decision = planner.choose(
                     loaded.tasks,
@@ -267,7 +276,8 @@ class AgentRunner:
                             self.progress[task_id] = replace(
                                 state,
                                 status="deferred"
-                                if self.ledger.snapshot().blocked
+                                if stop_paid
+                                or self.ledger.snapshot().blocked
                                 or task_id in getattr(planner, "deferred_task_ids", ())
                                 or task_id in budget_deferred_tasks
                                 else "exhausted",
@@ -297,14 +307,38 @@ class AgentRunner:
                     current = replace(current, last_result=result)
                     if result.status == "candidate":
                         validation = await self._validate(task, result)
+                        if (
+                            result.attempt_id
+                            in getattr(self.components.gateway, "competition_overruns", ())
+                            and self.components.decision_store is not None
+                            and not self.components.decision_store.get(task).independent_semantics
+                        ):
+                            validation = replace(
+                                validation,
+                                status="failed",
+                                checks=(
+                                    *validation.checks,
+                                    CheckResult(
+                                        check_id="overrun_independent_verification",
+                                        status="failed",
+                                        blocking=True,
+                                        message="financial overrun requires independent verification",
+                                    ),
+                                ),
+                            )
+                        validations.append(validation)
                         acceptance = self.policy.decide(result, validation)
                         published = False
-                        if (
-                            acceptance.status == "accept"
-                            and loop.time() < decision.budget.deadline_monotonic
-                        ):
+                        if acceptance.status == "accept":
+                            if loop.time() >= decision.budget.deadline_monotonic:
+                                stop_paid = True
+                            # The owned filesystem operation must finish before
+                            # cleanup or another task; a blocked kernel call has no
+                            # safely enforceable timeout in a Python worker thread.
                             receipt = await self.publisher.publish(task, result, acceptance)
                             receipts.append(receipt)
+                            if loop.time() >= decision.budget.deadline_monotonic:
+                                stop_paid = True
                             published = receipt.status in ("saved", "already_saved")
                             current = replace(
                                 current,
@@ -421,6 +455,7 @@ class AgentRunner:
                 decision_traces=self.components.decision_store.traces()
                 if self.components.decision_store is not None
                 else (),
+                validations=tuple(validations),
             )
         finally:
             for attempt_id in tuple(self.workspaces.records):

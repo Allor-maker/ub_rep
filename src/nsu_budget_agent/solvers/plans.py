@@ -13,6 +13,40 @@ class Unsupported(ValueError):
     pass
 
 
+def explicit_missing_data(task: TaskSpec) -> str | None:
+    """Closed patterns for tasks explicitly denying a necessary input.
+
+    The entire instruction must match; no inference from a partial phrase or
+    from the absence of an artifact is used to rule out a solvable task.
+    """
+    suffix = (
+        r" Work only inside the current task workspace\. Write ONLY the final answer "
+        r"to answer\.txt next to task\.json, with no explanation\."
+    )
+    text = task.instruction.strip()
+    warehouse = re.fullmatch(
+        r"A warehouse starts with (\d{1,30}) boxes\. It ships an unspecified number of boxes "
+        r"per day for (\d{1,30}) days\. Exactly how many boxes remain\? The daily shipment "
+        r"count is not included in the available data\." + suffix,
+        text,
+        re.I,
+    )
+    if warehouse and int(warehouse[2]) > 0 and int(warehouse[1]) >= int(warehouse[2]):
+        return "explicit_missing_shipment_quantity"
+    tax = re.fullmatch(
+        r"The file [A-Za-z0-9_.-]+\.csv in workspace/ has columns "
+        r"order_id,region,product,month,units,price \(\d{1,6} rows\)\. How much sales tax "
+        r"was actually collected for product '[A-Za-z0-9_-]+' in months \d{1,2} through "
+        r"\d{1,2} inclusive\? No tax rate or tax column is provided\. Use python3 to compute "
+        r"an exact result from the available data\." + suffix,
+        text,
+        re.I,
+    )
+    if tax:
+        return "explicit_missing_tax_data"
+    return None
+
+
 @dataclass(frozen=True)
 class Plan:
     kind: str
@@ -33,6 +67,9 @@ _SUFFIXES = (
 
 
 def _question(instruction: str) -> str:
+    from .language import core_text
+
+    instruction = core_text(instruction)
     if len(instruction) > 10_000:
         raise Unsupported("instruction exceeds grammar limit")
     question, separator, rest = instruction.partition("?")
@@ -113,6 +150,15 @@ def _warehouse(text: str) -> ToolCall | None:
 def plan(task: TaskSpec) -> Plan:
     if task.type_hint == "coding" or task.check_hint == "unittest":
         raise Unsupported("coding and test execution are unavailable")
+    from .language import simple_csv, simple_search, stock_call
+
+    for kind, call in (
+        ("math", stock_call(task.instruction)),
+        ("search", simple_search(task)),
+        ("data_analysis", simple_csv(task)),
+    ):
+        if call is not None:
+            return Plan(kind, call)
     text = _question(task.instruction)
     arithmetic = re.fullmatch(
         r"(?:Compute|Calculate|Evaluate)\s+([0-9+*/%(). \-]+)\.?(?:\s+Return only the result\.)?",
@@ -130,6 +176,11 @@ def plan(task: TaskSpec) -> Plan:
     if warehouse:
         return Plan("math", warehouse)
     search = (
+        (
+            r"In which year did (?P<entity>.+?)'s employer acquire its first foreign subsidiary\?",
+            ("Employer",),
+            "First foreign subsidiary acquisition year",
+        ),
         (
             r"In which city is the headquarters of (?P<entity>.+?)'s employer\?",
             ("Employer",),

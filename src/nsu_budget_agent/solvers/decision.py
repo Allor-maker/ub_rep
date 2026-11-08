@@ -25,6 +25,7 @@ from nsu_budget_agent.orchestration.decision import (
 )
 
 from .llm import MinimalLLMSolver
+from .plans import explicit_missing_data
 from .sources import selected_sources
 
 __all__ = [
@@ -85,13 +86,18 @@ class DecisionSolver:
             task_id=task.task_id,
             solver_id=self.solver_id,
             applicability="no"
-            if task.type_hint == "coding" or task.check_hint == "unittest"
+            if task.type_hint == "coding"
+            or task.check_hint == "unittest"
+            or explicit_missing_data(task)
             else "unknown",
             required_tools=(),
             reason="A5 bounded roles; unknown estimates",
         )
 
     async def step(self, ctx: SolverContext, history: tuple[StepRecord, ...]) -> SolverStep:
+        missing = explicit_missing_data(ctx.task)
+        if missing:
+            return StopAttempt(status="blocked_by_evidence", reason=missing)
         try:
             sources = selected_sources(ctx.task)
         except ValueError:

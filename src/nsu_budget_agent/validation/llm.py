@@ -25,6 +25,8 @@ from .local import LocalValidator
 class VerifiableQuestion:
     left: str
     right: str | None = None
+    kind: str = "affine"
+    values: tuple[int, ...] = ()
 
 
 def question(task: TaskSpec) -> VerifiableQuestion | None:
@@ -36,6 +38,11 @@ def question(task: TaskSpec) -> VerifiableQuestion | None:
     ):
         return None
     text = task.instruction.strip()
+    from .routed import discrete_question
+
+    discrete = discrete_question(text)
+    if discrete is not None:
+        return VerifiableQuestion("", kind=discrete[0], values=discrete[1])
     expression = re.fullmatch(
         r"What is the exact value of ([0-9+*/%(). \-]+)\? Return only the result\.", text
     )
@@ -103,6 +110,10 @@ def _affine(expression: str) -> tuple[Fraction, Fraction]:
 
 
 def _expected(spec: VerifiableQuestion) -> str:
+    if spec.kind != "affine":
+        from .routed import discrete_answer
+
+        return discrete_answer(spec.kind, spec.values)
     a, b = _affine(spec.left)
     if spec.right is None:
         if a:

@@ -319,7 +319,9 @@ class RouterPipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len({call["messages"][-1]["content"] for call in self.calls}), 3)
 
     async def test_reviewer_accept_correct_partial_plan_still_requires_validator(self):
-        root = self.task("csv", PARTIAL + " Return only the result.", files={"sales.csv": CSV})
+        root = self.task(
+            "csv", PARTIAL + " Return this value in plain text.", files={"sales.csv": CSV}
+        )
         report = await self.runner([review()]).run(self.tasks)
         self.assertEqual((root / "answer.txt").read_text(), "30")
         self.assertNotIn(State.CERTIFIED, self.states(report, "csv"))
@@ -487,7 +489,7 @@ class RouterPipelineTests(unittest.IsolatedAsyncioTestCase):
             ("free", "Compute 2+3.", None, "5"),
             ("math-extra", MATH_PARTIAL, None, None),
             ("csv-extra", PARTIAL + " Use only rows with status 'paid'.", {"sales.csv": CSV}, "20"),
-            ("csv-review", PARTIAL + " Return only the result.", {"sales.csv": CSV}, "30"),
+            ("csv-review", PARTIAL + " Return this value in plain text.", {"sales.csv": CSV}, "30"),
             ("novel", "Give the result of adding eleven and four.", None, "15"),
             ("tool", "Total paid west revenue in sales.csv.", {"sales.csv": CSV}, "20"),
             ("affine", "Solve for x: 3*x+2=14. Return only the value of x.", None, "4"),

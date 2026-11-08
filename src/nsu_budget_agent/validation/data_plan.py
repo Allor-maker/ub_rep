@@ -14,6 +14,7 @@ from codecs import BOM_UTF8
 from dataclasses import dataclass
 from decimal import Context, Decimal, Inexact, localcontext
 from pathlib import PurePosixPath
+from typing import cast
 from uuid import uuid4
 
 from nsu_budget_agent.contracts.models import (
@@ -109,6 +110,22 @@ def data_question(task: TaskSpec) -> DataQuestion | None:
     ):
         return None
     text = task.instruction.strip()
+    from nsu_budget_agent.solvers.language import csv_call, search_call
+
+    compiled = csv_call(task) or search_call(task)
+    if compiled is not None:
+        args = cast(dict, compiled.arguments)
+        paths = (
+            (parse_rel_path(args["path"]),)
+            if compiled.tool_name == "query_csv"
+            else tuple(parse_rel_path(p) for p in args["paths"])
+        )
+        return DataQuestion(compiled, paths)
+    from .routed import routed_data
+
+    routed = routed_data(task)
+    if routed is not None:
+        return DataQuestion(*routed)
     csv_patterns = (
         (
             rf"From (?P<path>{_FILE}), total the (?P<c1>{_COLUMN}) values for rows whose (?P<f>{_COLUMN}) is '(?P<v>{_VALUE})'\.",
@@ -197,7 +214,32 @@ def data_question(task: TaskSpec) -> DataQuestion | None:
 
 def matches_instruction(task: TaskSpec, call: ToolCall) -> bool:
     spec = data_question(task)
-    return spec is not None and spec.call == call
+    if spec is None or spec.call.tool_name != call.tool_name:
+        return False
+    left, right = dict(spec.call.arguments), dict(call.arguments)
+    if call.tool_name == "query_csv":
+        for args in (left, right):
+            filters = args.get("filters")
+            if not isinstance(filters, list) or any(not isinstance(p, dict) for p in filters):
+                return False
+            filter_rows = cast(list[dict], filters)
+            normalized = sorted(
+                [
+                    {**p, "value": sorted(p["value"])}
+                    if p.get("op") == "in" and isinstance(p.get("value"), list)
+                    else p
+                    for p in filter_rows
+                ],
+                key=lambda p: json.dumps(p, sort_keys=True),
+            )
+            args["filters"] = cast(list, normalized)
+    elif call.tool_name == "lookup_markdown":
+        for args in (left, right):
+            paths = args.get("paths")
+            if not isinstance(paths, list) or not all(isinstance(p, str) for p in paths):
+                return False
+            args["paths"] = sorted(paths, key=str)
+    return left == right
 
 
 def _csv_answer(text: str, args: dict, deadline: float) -> str:
@@ -212,8 +254,10 @@ def _csv_answer(text: str, args: dict, deadline: float) -> str:
         or len(fields) != len(set(fields))
     ):
         raise ValueError("invalid CSV header")
-    predicate = args["filters"][0]
-    required = [*args["columns"], predicate["column"]]
+    predicates = args["filters"]
+    if not isinstance(predicates, list) or not predicates or len(predicates) > 16:
+        raise ValueError("independent CSV predicates")
+    required = [*args["columns"], *(p["column"] for p in predicates)]
     if any(column not in fields for column in required):
         raise ValueError("missing column")
     context = Context(prec=256, Emin=-1024, Emax=1024)
@@ -225,14 +269,39 @@ def _csv_answer(text: str, args: dict, deadline: float) -> str:
                 raise TimeoutError("independent CSV deadline")
             if count > 100_000 or None in row or any(value is None for value in row.values()):
                 raise ValueError("CSV shape/row limit")
-            if not row[predicate["column"]].strip():
-                raise ValueError("unknown filter value")
+            selected = True
+            for predicate in predicates:
+                raw = row[predicate["column"]]
+                if not raw.strip():
+                    raise ValueError("unknown filter value")
+                if predicate["op"] == "eq":
+                    selected &= raw == predicate["value"]
+                elif predicate["op"] == "in":
+                    values = predicate["value"]
+                    if (
+                        not isinstance(values, list)
+                        or not 1 <= len(values) <= 16
+                        or any(not isinstance(v, str) or not v.strip() for v in values)
+                        or len(set(values)) != len(values)
+                    ):
+                        raise ValueError("independent set predicate")
+                    selected &= raw in frozenset(values)
+                elif predicate["op"] in ("ge", "le"):
+                    if re.fullmatch(r"[+-]?\d{1,40}(?:\.\d{1,20})?", raw) is None:
+                        raise ValueError("non-numeric range")
+                    selected &= (
+                        Decimal(raw) >= Decimal(predicate["value"])
+                        if predicate["op"] == "ge"
+                        else Decimal(raw) <= Decimal(predicate["value"])
+                    )
+                else:
+                    raise ValueError("unsupported predicate")
             numbers = []
             for column in args["columns"]:
                 if re.fullmatch(r"[+-]?\d{1,40}(?:\.\d{1,20})?", row[column]) is None:
                     raise ValueError("invalid numeric cell")
                 numbers.append(Decimal(row[column]))
-            if row[predicate["column"]] == predicate["value"]:
+            if selected:
                 if args["aggregate"] == "count_rows":
                     total += 1
                 elif args["aggregate"] == "sum":
@@ -262,7 +331,7 @@ def _markdown_answer(
             field, separator, value = line.partition(":")
             if (
                 not separator
-                or not re.fullmatch(r"[A-Za-z][A-Za-z ]*", field)
+                or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 ]{0,127}", field)
                 or not value.strip()
                 or field.casefold() in properties
             ):
@@ -277,10 +346,29 @@ def _markdown_answer(
         properties, path = profiles[entity]
         entity = properties[field.casefold()]
         evidence.add(path)
-    if args["field"] in ("Born", "Founded") and not re.fullmatch(r"\d{1,4}", entity):
+    if args["field"] in (
+        "Born",
+        "Founded",
+        "First foreign subsidiary acquisition year",
+    ) and not re.fullmatch(r"\d{1,4}", entity):
         raise ValueError("invalid year")
     if args["field"] == "Email" and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", entity):
         raise ValueError("invalid email")
+    if args["field"].casefold().endswith("initiative launch month") and entity not in (
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ):
+        raise ValueError("invalid month")
     return entity, tuple(sorted(evidence))
 
 

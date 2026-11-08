@@ -1,6 +1,7 @@
 """A4 ranking with a conservative equal-share cap for first paid attempts."""
 
 from dataclasses import replace
+from fractions import Fraction
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -26,6 +27,18 @@ class DecisionPortfolioPlanner(BaselinePlanner):
         self.controller = controller
         self.deferred_task_ids: set[str] = set()
 
+    def _rank(self, task, offer, state, no_llm):
+        base = super()._rank(task, offer, state, no_llm)
+        if no_llm or self.controller is None or not self.controller.require_independent:
+            return base
+        from nsu_budget_agent.validation.data_plan import data_question
+        from nsu_budget_agent.validation.llm import question
+
+        known = question(task) is not None or data_question(task) is not None
+        floor = max(1, self.controller.minimum_reservation(task))
+        # Reservation is a conservative cost proxy, not an observed probability.
+        return (True, not known, -Fraction(task.reward, floor), *base)
+
     def choose(
         self,
         tasks: tuple[TaskSpec, ...],
@@ -36,6 +49,7 @@ class DecisionPortfolioPlanner(BaselinePlanner):
         now: float,
     ) -> PlanDecision | None:
         floors = {}
+        negotiated = {}
         self.deferred_task_ids.clear()
         eligible = []
         task_by_id = {t.task_id: t for t in tasks}
@@ -57,10 +71,21 @@ class DecisionPortfolioPlanner(BaselinePlanner):
                     reserve = self.controller.minimum_reservation(route.task)
                 except ValueError:
                     continue
-                floors[offer.task_id] = reserve * min(
-                    self.controller.route_call_cap(route.task), config.attempt_limits.max_llm_calls
-                )
-                if reserve > min(budget.available_units, config.attempt_limits.max_cost_units):
+                available = min(budget.available_units, config.attempt_limits.max_cost_units)
+                if self.controller.reserve_mandatory_calls:
+                    proposal = self.controller.negotiate_caps(
+                        route.task, available, config.attempt_limits.allowed_models
+                    )
+                    if proposal is None:
+                        self.deferred_task_ids.add(offer.task_id)
+                        continue
+                    negotiated[offer.task_id], floors[offer.task_id] = proposal
+                else:
+                    floors[offer.task_id] = reserve * min(
+                        self.controller.route_call_cap(route.task),
+                        config.attempt_limits.max_llm_calls,
+                    )
+                if not self.controller.reserve_mandatory_calls and reserve > available:
                     self.deferred_task_ids.add(offer.task_id)
                     continue
             eligible.append(offer)
@@ -68,6 +93,10 @@ class DecisionPortfolioPlanner(BaselinePlanner):
         decision = super().choose(tasks, offers, progress, budget, config, now)
         if decision is None or decision.solver_id != "generic" or self.controller is None:
             return decision
+        if decision.task_id in negotiated:
+            route = self.controller.store.get(task_by_id[decision.task_id])
+            route.negotiated_caps = negotiated[decision.task_id]
+            route.preflight_floor = floors[decision.task_id]
         states = {s.task_id: s for s in progress}
         waiting = sum(
             offer.solver_id == "generic"

@@ -8,7 +8,7 @@
 14 Protocol и отдельный offline SDK smoke для openJiuwen 0.1.19 на Windows/Python 3.11.
 Gateway проверен только через mock HTTP; strict требует явно проверенных bounds/profile.
 `run_agent.py` исполняет реальный openJiuwen workflow с подключаемыми B-компонентами;
-По умолчанию подключены детерминированные math/search/data_analysis и проверка
+Без ключа подключены детерминированные math/search/data_analysis и проверка
 по публичным данным; fake B доступны только в integration tests. Dockerfile подготовлен;
 его сборка и Linux-проверка остаются открытыми. Вызовов NeuralDeep и конкурсного результата нет.
 Выполненные проверки и ограничения: [отчёт A1](docs/a1-report.md),
@@ -18,7 +18,7 @@ Gateway проверен только через mock HTTP; strict требуе�
 [A6: Docker-команды, проверки и открытые риски](docs/a6-report.md).
 [A3.5: явная диагностика провайдера и ограниченный strict LLM fallback](docs/a35-report.md)
 добавляет отдельную opt-in factory. Без подтверждённого compatibility adapter
-production LLM не включается; live-диагностика отдельно требует флаг, ключ и бюджет.
+strict LLM не включается; live-диагностика отдельно требует флаг, ключ и бюджет.
 [A3.6](docs/a36-report.md) добавляет однократный LLM-to-Tools план для явно
 проверяемых search/CSV-инструкций через ту же opt-in strict factory.
 [A7.1](docs/a71-report.md) объединяет бесплатный проход, отдельный Reviewer и
@@ -27,8 +27,21 @@ generic Solver для неизвестных формулировок. Подк�
 Действуют те же требования strict compatibility adapter; готового trusted
 адаптера NeuralDeep нет. В JSON-отчёте CLI доступны `decision_routes`.
 Принятые по LLM-review ответы явно остаются несертифицированными.
+[A7.2](docs/a72-report.md): стандартная команда теперь выбирает `build_production`.
+Без `LLM_API_KEY` работает offline B-minimal. Ключ + URL активируют competition
+Decision Router без adapter: оценки резервируются в A2, `max_tokens` ограничивается
+доступным бюджетом; missing/ambiguous usage сохраняет held и останавливает платные
+маршруты. Это контролируемый риск, а не гарантия удалённого биллинга.
+`--llm-mode strict` (или `LLM_MODE=strict`) требует reviewed
+`LLM_COMPATIBILITY_ADAPTER` и подтверждённых профилей. Принудительный
+offline: `--components nsu_budget_agent.solvers.composition:build`.
+Гарантий публичной документации пока недостаточно для выпуска адаптера NeuralDeep;
+критерий настоящего Qwen end-to-end остаётся открытым, реальные вызовы не выполнялись.
 По умолчанию `BUDGET` трактуется как competition_tokens; `--budget-unit` позволяет
-явно выбрать внутренние units_x10, единицы организаторов ещё требуют подтверждения.
+явно выбрать внутренние units_x10. `BUDGET=100000` даёт 1000000 Units;
+input + 10 * output включает весь reasoning, cache не даёт скидки.
+Каждый принятый Validator ответ A5 публикует до следующей задачи; crash-тест
+проверяет сохранность после принудительного завершения без finally.
 
 ```powershell
 $env:BUDGET = '0'
