@@ -1,6 +1,7 @@
 """Independent blocking checks for a deliberately small verifiable LLM subset."""
 
 import ast
+import csv
 import re
 from dataclasses import dataclass, replace
 from fractions import Fraction
@@ -16,6 +17,7 @@ from nsu_budget_agent.contracts.models import (
 from nsu_budget_agent.contracts.ports import ToolExecutor
 from nsu_budget_agent.tools.calculations import number, render
 
+from .data_plan import EvidenceUnavailable, data_question, independently_answer
 from .local import LocalValidator
 
 
@@ -126,6 +128,18 @@ class FallbackValidator:
             return baseline
         spec = question(task)
         correct = False
+        semantic_status: Literal["passed", "failed", "inconclusive"] = "failed"
+        data_spec = data_question(task)
+        if data_spec is not None and result.candidate is not None:
+            try:
+                answer, evidence = await independently_answer(task, self.local.tools, ctx)
+                correct = result.candidate.text == answer and set(
+                    result.candidate.evidence_paths
+                ) == set(evidence)
+            except (EvidenceUnavailable, TimeoutError):
+                semantic_status = "inconclusive"
+            except (ValueError, KeyError, ArithmeticError, csv.Error):
+                correct = False
         if spec is not None and result.candidate is not None:
             correct = not result.candidate.evidence_paths and result.candidate.text == _expected(
                 spec
@@ -137,9 +151,9 @@ class FallbackValidator:
         ) + (
             CheckResult(
                 check_id="llm_semantics",
-                status="passed" if correct else "failed",
+                status="passed" if correct else semantic_status,
                 blocking=True,
-                message="independent exact arithmetic and unique-solution check",
+                message="independent instruction binding, evidence and exact local computation",
             ),
         )
         status: Literal["passed", "failed", "inconclusive"] = (

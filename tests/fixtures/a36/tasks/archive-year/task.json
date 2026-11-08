@@ -1,0 +1,7 @@
+{
+  "task_id": "archive-year",
+  "instruction": "According to archive/*.md, give the Born year for Lena Ortiz.",
+  "type": "search",
+  "check": "exact_int",
+  "reward": 1
+}
