@@ -1,8 +1,8 @@
-name: A1-A6 and B-minimal Linux CI
+name: A1-A6, A3.5 and B-minimal Linux CI
 
 "on":
   push:
-    branches: [feature/a1-contracts, feature/a2-budget-ledger, feature/a3-llm-gateway, feature/a4-planner, feature/a5-orchestration, feature/b-minimal, feature/a6-docker]
+    branches: [feature/a1-contracts, feature/a2-budget-ledger, feature/a3-llm-gateway, feature/a4-planner, feature/a5-orchestration, feature/b-minimal, feature/a6-docker, feature/a35-neuraldeep]
   pull_request:
     branches: [main]
 
@@ -25,7 +25,7 @@ env:
 
 jobs:
   contracts:
-    name: A1-A5 and B-minimal tests, real SDK, Ruff and Mypy (Python 3.11)
+    name: A1-A6, A3.5 and B-minimal tests, real SDK, Ruff and Mypy (Python 3.11)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -43,7 +43,7 @@ jobs:
             requirements-runtime.txt
       - name: Install A1-A5 checks and SDK (Linux dependency resolution)
         run: python -m pip install --timeout 30 --retries 2 -r requirements-dev.txt -r requirements-llm.txt -r requirements-sdk-probe.txt
-      - name: All A1-A5 and B-minimal tests (no live API)
+      - name: All A1-A6, A3.5 and B-minimal tests (no live API)
         timeout-minutes: 5
         env:
           HF_HUB_OFFLINE: "1"

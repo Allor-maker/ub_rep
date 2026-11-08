@@ -421,7 +421,7 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(cleaned.is_set())
         self.assertEqual(self.ledger.snapshot().held_units, 720)
 
-    async def test_cancellation_while_reading_response_closes_stream_and_keeps_hold(self):
+    async def test_cancellation_while_reading_defers_stream_cleanup_and_keeps_hold(self):
         started, closed = asyncio.Event(), asyncio.Event()
 
         class WaitingStream(httpx.AsyncByteStream):
@@ -439,8 +439,63 @@ class GatewayTests(unittest.IsolatedAsyncioTestCase):
         task.cancel()
         with self.assertRaises(asyncio.CancelledError):
             await task
-        self.assertTrue(closed.is_set())
+        self.assertFalse(closed.is_set())
         self.assertEqual(self.ledger.snapshot().held_units, 720)
+
+    async def test_read_timeout_does_not_start_cancellation_resistant_response_close(self):
+        started, close_started = asyncio.Event(), asyncio.Event()
+
+        class StuckStream(httpx.AsyncByteStream):
+            async def __aiter__(self):
+                started.set()
+                await asyncio.Event().wait()
+                yield b"unreachable"
+
+            async def aclose(self):
+                close_started.set()
+                while True:
+                    try:
+                        await asyncio.Event().wait()
+                    except asyncio.CancelledError:
+                        pass
+
+        gateway = self.gateway(
+            lambda request: httpx.Response(200, stream=StuckStream()), timeout_s=0.03
+        )
+        before = set(asyncio.all_tasks())
+        await self.fails("timeout", gateway.bind("a", 0, self.budget).complete(self.request()))
+        self.assertTrue(started.is_set())
+        self.assertFalse(close_started.is_set())
+        self.assertEqual(self.ledger.snapshot().held_units, 720)
+        self.assertEqual(set(asyncio.all_tasks()) - before, set())
+
+    async def test_cancelled_read_never_starts_cancellation_resistant_close(self):
+        started, close_started = asyncio.Event(), asyncio.Event()
+
+        class StuckStream(httpx.AsyncByteStream):
+            async def __aiter__(self):
+                started.set()
+                await asyncio.Event().wait()
+                yield b"unreachable"
+
+            async def aclose(self):
+                close_started.set()
+                while True:
+                    try:
+                        await asyncio.Event().wait()
+                    except asyncio.CancelledError:
+                        pass
+
+        gateway = self.gateway(lambda request: httpx.Response(200, stream=StuckStream()))
+        before = set(asyncio.all_tasks())
+        task = asyncio.create_task(gateway.bind("a", 0, self.budget).complete(self.request()))
+        await started.wait()
+        task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await task
+        self.assertFalse(close_started.is_set())
+        self.assertEqual(self.ledger.snapshot().held_units, 720)
+        self.assertEqual(set(asyncio.all_tasks()) - before, set())
 
     async def test_transport_errors_are_sanitized_and_not_retried(self):
         def handler(request):
