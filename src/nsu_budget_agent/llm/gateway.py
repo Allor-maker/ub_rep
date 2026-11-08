@@ -343,9 +343,11 @@ class NeuralDeepGateway:
                             self._cooldown_until,
                             self._loop.time() + max(self._interval_s, delay or 0.0),
                         )
+                    response_read = False
                     try:
                         try:
                             raw = await self._read_response(response)
+                            response_read = True
                         except OperationFailed:
                             # Status/Retry-After remain meaningful even if a body is too large.
                             failed_read = self._http_error(response, None)
@@ -353,7 +355,12 @@ class NeuralDeepGateway:
                                 raise failed_read from None
                             raise
                     finally:
-                        await response.aclose()
+                        if response_read:
+                            await response.aclose()
+                        # After an interrupted read, arbitrary stream cleanup can
+                        # swallow cancellation forever. Do not start it here or
+                        # orphan a task; transport ownership remains with the
+                        # gateway and its eventual aclose().
                     try:
                         payload = json.loads(
                             raw, object_pairs_hook=_json_object, parse_constant=_invalid_constant

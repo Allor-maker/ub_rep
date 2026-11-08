@@ -171,19 +171,33 @@ class AgentRunner:
             tools=tools, deterministic_solvers=self.components.deterministic_solvers
         )
         receipts: list[SubmissionReceipt] = []
+        # A5 starts each attempt from the same immutable task inputs; no solver
+        # history is shared across attempts. A repeated generic call after an
+        # evidence/validation failure would therefore have no new evidence.
+        exhausted_routes: set[tuple[str, str]] = set()
         loop = asyncio.get_running_loop()
         try:
             while loop.time() < self.config.deadline_monotonic:
                 progress = tuple(self.progress.values())
                 now = loop.time()
+                available_offers = tuple(
+                    offer
+                    for offer in offers
+                    if (offer.task_id, offer.solver_id) not in exhausted_routes
+                )
                 decision = planner.choose(
-                    loaded.tasks, offers, progress, self.ledger.snapshot(), self.config, now
+                    loaded.tasks,
+                    available_offers,
+                    progress,
+                    self.ledger.snapshot(),
+                    self.config,
+                    now,
                 )
                 if decision is None:
                     wake = next_not_before_wakeup(
                         planner,
                         loaded.tasks,
-                        offers,
+                        available_offers,
                         progress,
                         self.ledger.snapshot(),
                         self.config,
@@ -235,11 +249,31 @@ class AgentRunner:
                                 else "exhausted",
                             )
                         else:
+                            if (
+                                decision.solver_id == "generic"
+                                and "generic" not in self.components.deterministic_solvers
+                            ):
+                                exhausted_routes.add((task.task_id, decision.solver_id))
                             current = replace(current, status="pending")
                     elif result.status in ("internal_error", "tool_error", "cancelled", "deadline"):
                         current = replace(current, status="exhausted")
                     else:
                         error = result.error
+                        if (
+                            decision.solver_id == "generic"
+                            and "generic" not in self.components.deterministic_solvers
+                            and (
+                                result.status == "blocked_by_evidence"
+                                or (
+                                    result.status == "provider_error"
+                                    and (
+                                        (error is not None and error.code == "invalid_output")
+                                        or self.ledger.snapshot(result.attempt_id).held_units > 0
+                                    )
+                                )
+                            )
+                        ):
+                            exhausted_routes.add((task.task_id, decision.solver_id))
                         delay = error.retry_after_s if error is not None else None
                         current = replace(
                             current,
@@ -297,4 +331,11 @@ class AgentRunner:
                 await joined_io(self.workspaces.cleanup, attempt_id)
 
     async def aclose(self) -> None:
-        await self.engine.aclose()
+        try:
+            await self.engine.aclose()
+        finally:
+            # LLMGateway v1 does not require ownership/close. The production
+            # composition owns its optional HTTP transport for this run.
+            close = getattr(self.components.gateway, "aclose", None)
+            if close is not None:
+                await close()

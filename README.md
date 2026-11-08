@@ -16,6 +16,9 @@ Gateway проверен только через mock HTTP; strict требуе�
 [отчёт A5-lite с запуском и ограничениями](docs/a5-report.md),
 [B-minimal: охват и результаты](docs/b-minimal-report.md),
 [A6: Docker-команды, проверки и открытые риски](docs/a6-report.md).
+[A3.5: явная диагностика провайдера и ограниченный strict LLM fallback](docs/a35-report.md)
+добавляет отдельную opt-in factory. Без подтверждённого compatibility adapter
+production LLM не включается; live-диагностика отдельно требует флаг, ключ и бюджет.
 По умолчанию `BUDGET` трактуется как competition_tokens; `--budget-unit` позволяет
 явно выбрать внутренние units_x10, единицы организаторов ещё требуют подтверждения.
 
