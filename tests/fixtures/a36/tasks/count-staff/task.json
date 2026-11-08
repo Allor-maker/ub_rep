@@ -1,0 +1,7 @@
+{
+  "task_id": "count-staff",
+  "instruction": "Count the records in staff.csv with department equal to 'Research'.",
+  "type": "data_analysis",
+  "check": "exact_int",
+  "reward": 1
+}

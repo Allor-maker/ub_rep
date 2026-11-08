@@ -19,6 +19,8 @@ Gateway проверен только через mock HTTP; strict требуе�
 [A3.5: явная диагностика провайдера и ограниченный strict LLM fallback](docs/a35-report.md)
 добавляет отдельную opt-in factory. Без подтверждённого compatibility adapter
 production LLM не включается; live-диагностика отдельно требует флаг, ключ и бюджет.
+[A3.6](docs/a36-report.md) добавляет однократный LLM-to-Tools план для явно
+проверяемых search/CSV-инструкций через ту же opt-in strict factory.
 По умолчанию `BUDGET` трактуется как competition_tokens; `--budget-unit` позволяет
 явно выбрать внутренние units_x10, единицы организаторов ещё требуют подтверждения.
 

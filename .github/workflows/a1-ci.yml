@@ -1,8 +1,8 @@
-name: A1-A6, A3.5 and B-minimal Linux CI
+name: A1-A6, A3.5-A3.6 and B-minimal Linux CI
 
 "on":
   push:
-    branches: [feature/a1-contracts, feature/a2-budget-ledger, feature/a3-llm-gateway, feature/a4-planner, feature/a5-orchestration, feature/b-minimal, feature/a6-docker, feature/a35-neuraldeep]
+    branches: [feature/a1-contracts, feature/a2-budget-ledger, feature/a3-llm-gateway, feature/a4-planner, feature/a5-orchestration, feature/b-minimal, feature/a6-docker, feature/a35-neuraldeep, feature/a36-llm-tools]
   pull_request:
     branches: [main]
 

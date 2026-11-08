@@ -1,0 +1,7 @@
+{
+  "task_id": "book-revenue",
+  "instruction": "Using sales.csv, calculate the sum of units * price for entries with category 'book'.",
+  "type": "data_analysis",
+  "check": "exact_int",
+  "reward": 1
+}

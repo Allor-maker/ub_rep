@@ -1,0 +1,94 @@
+{
+  "From ledger.csv, total the amount values for rows whose region is 'west'.": {
+    "kind": "tool",
+    "tool_name": "query_csv",
+    "arguments": {
+      "path": "ledger.csv",
+      "aggregate": "sum",
+      "columns": [
+        "amount"
+      ],
+      "filters": [
+        {
+          "column": "region",
+          "op": "eq",
+          "value": "west"
+        }
+      ]
+    }
+  },
+  "Count the records in staff.csv with department equal to 'Research'.": {
+    "kind": "tool",
+    "tool_name": "query_csv",
+    "arguments": {
+      "path": "staff.csv",
+      "aggregate": "count_rows",
+      "columns": [],
+      "filters": [
+        {
+          "column": "department",
+          "op": "eq",
+          "value": "Research"
+        }
+      ]
+    }
+  },
+  "Using sales.csv, calculate the sum of units * price for entries with category 'book'.": {
+    "kind": "tool",
+    "tool_name": "query_csv",
+    "arguments": {
+      "path": "sales.csv",
+      "aggregate": "product_sum",
+      "columns": [
+        "units",
+        "price"
+      ],
+      "filters": [
+        {
+          "column": "category",
+          "op": "eq",
+          "value": "book"
+        }
+      ]
+    }
+  },
+  "Look up the Email of Mira Chen in people/*.md.": {
+    "kind": "tool",
+    "tool_name": "lookup_markdown",
+    "arguments": {
+      "paths": [
+        "people/person.md"
+      ],
+      "entity": "Mira Chen",
+      "chain": [],
+      "field": "Email"
+    }
+  },
+  "Which city is listed as Headquarters for the Employer of Mira Chen in profiles/*.md?": {
+    "kind": "tool",
+    "tool_name": "lookup_markdown",
+    "arguments": {
+      "paths": [
+        "profiles/company.md",
+        "profiles/person.md"
+      ],
+      "entity": "Mira Chen",
+      "chain": [
+        "Employer"
+      ],
+      "field": "Headquarters"
+    }
+  },
+  "According to archive/*.md, give the Born year for Lena Ortiz.": {
+    "kind": "tool",
+    "tool_name": "lookup_markdown",
+    "arguments": {
+      "paths": [
+        "archive/person.md"
+      ],
+      "entity": "Lena Ortiz",
+      "chain": [],
+      "field": "Born"
+    }
+  }
+}
