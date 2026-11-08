@@ -116,6 +116,7 @@ class NeuralDeepGateway:
         transport: httpx.AsyncBaseTransport | None = None,
         environ: Mapping[str, str] | None = None,
         event_sink: EventSink | None = None,
+        competition_mode: bool = False,
     ) -> None:
         _int(max_concurrent_requests, "max_concurrent_requests", 1)
         _int(requests_per_minute, "requests_per_minute", 1)
@@ -125,6 +126,10 @@ class NeuralDeepGateway:
             raise ContractError("parallel/RPM limits exceed the configured competition ceiling")
         if accounting_mode not in ("strict", "best_effort"):
             raise ContractError("invalid accounting mode")
+        if type(competition_mode) is not bool or (
+            competition_mode and accounting_mode != "best_effort"
+        ):
+            raise ContractError("competition policy requires explicit best_effort accounting")
         if output_token_parameter not in ("max_tokens", "max_completion_tokens"):
             raise ContractError("invalid output token parameter")
         if not callable(input_bound):
@@ -162,6 +167,10 @@ class NeuralDeepGateway:
                 raise ContractError("unsupported model profile")
             _instance(profile, ProviderProfile, "profile")
         self._strict = accounting_mode == "strict"
+        self.competition_mode = competition_mode
+        self.competition_overruns: set[Id] = set()
+        self.events: list[LLMEvent] = []
+        self._event_started: dict[Id, float] = {}
         self._output_parameter = output_token_parameter
         self._timeout_s = timeout_s
         self._response_limit = max_response_bytes
@@ -213,6 +222,13 @@ class NeuralDeepGateway:
         return self._sessions[key]
 
     def _emit(self, event: LLMEvent) -> None:
+        now = self._loop.time()
+        if event.phase == "reserved":
+            self._event_started[event.request_id] = now
+        event = replace(
+            event, elapsed_s=max(0.0, now - self._event_started.get(event.request_id, now))
+        )
+        self.events.append(event)
         if self._event_sink is not None:
             try:
                 self._event_sink(event)
@@ -246,7 +262,10 @@ class NeuralDeepGateway:
         if 200 <= response.status_code < 300 and error is None:
             return None
         code = error.get("code") if isinstance(error, dict) else None
-        if code in ("insufficient_quota", "quota_exhausted", "budget_exhausted"):
+        if code in ("insufficient_quota", "quota_exhausted", "budget_exhausted") or (
+            self.competition_mode
+            and (code in ("quota_exceeded", "insufficient_balance") or response.status_code == 402)
+        ):
             failure = _failure("quota_exhausted", "provider quota exhausted")
             self._budget.halt(failure.error)
             return failure
@@ -293,6 +312,14 @@ class NeuralDeepGateway:
         ).encode("utf-8")
         bound = self._input_bound(request, body)
         _int(bound, "input_bound_tokens")
+        if self.competition_mode:
+            from .competition import fit_request
+
+            available = min(
+                self._budget.snapshot().available_units,
+                self._budget.snapshot(attempt_id).available_units,
+            )
+            request, body, bound = fit_request(request, available, parameter=self._output_parameter)
         request_id = uuid4().hex
         unknown = UsageRecord(
             request_id=request_id,
@@ -303,7 +330,12 @@ class NeuralDeepGateway:
             output_tokens=None,
         )
         event = LLMEvent(
-            request_id=request_id, attempt_id=attempt_id, model=request.model, phase="reserved"
+            request_id=request_id,
+            attempt_id=attempt_id,
+            model=request.model,
+            phase="reserved",
+            input_bound_tokens=bound,
+            output_cap_tokens=request.max_output_tokens,
         )
         lease = self._budget.reserve(
             request_id, attempt_id, request.model, bound, request.max_output_tokens
@@ -368,16 +400,51 @@ class NeuralDeepGateway:
                     except (ValueError, UnicodeError, RecursionError):
                         payload = None
                     failed = self._http_error(response, payload)
-                    usage = normalize_usage(
-                        payload,
-                        request_id=request_id,
-                        attempt_id=attempt_id,
-                        model=request.model,
-                        profile=profile,
-                        success=failed is None,
-                    )
-                    self._budget.record_usage(usage)
-                    accounted = True
+                    if self.competition_mode:
+                        from .competition import normalize_competition_usage
+
+                        usage = normalize_competition_usage(
+                            payload,
+                            request_id=request_id,
+                            attempt_id=attempt_id,
+                            model=request.model,
+                            success=failed is None,
+                        )
+                    else:
+                        usage = normalize_usage(
+                            payload,
+                            request_id=request_id,
+                            attempt_id=attempt_id,
+                            model=request.model,
+                            profile=profile,
+                            success=failed is None,
+                        )
+                    try:
+                        self._budget.record_usage(usage)
+                        accounted = True
+                    except OperationFailed as exc:
+                        # A2 commits the full exact charge and halts before reporting
+                        # a reservation breach. The received result may still be
+                        # independently validated without another paid request.
+                        if not (
+                            self.competition_mode
+                            and failed is None
+                            and usage.status == "exact"
+                            and usage.cost_units is not None
+                            and usage.cost_units > lease.reserved_units
+                            and exc.error.code == "accounting_violation"
+                            and self._budget.snapshot().blocked
+                        ):
+                            raise
+                        accounted = True
+                        self.competition_overruns.add(attempt_id)
+                    if self.competition_mode and usage.status == "unknown":
+                        self._budget.halt(
+                            ErrorInfo(
+                                code="unknown_usage",
+                                message="competition reported usage is uncertain; paid routes stopped",
+                            )
+                        )
                     if (
                         (
                             usage.input_tokens is not None
@@ -393,14 +460,30 @@ class NeuralDeepGateway:
                         )
                     ):
                         failure = _failure(
-                            "accounting_violation", "provider exceeded a token bound"
+                            "accounting_violation",
+                            "reported usage exceeded competition estimate/cap"
+                            if self.competition_mode
+                            else "provider exceeded a token bound",
                         )
                         self._budget.halt(failure.error)
-                        raise failure
+                        if self.competition_mode and failed is None and usage.status == "exact":
+                            self.competition_overruns.add(attempt_id)
+                        if not (
+                            self.competition_mode and failed is None and usage.status == "exact"
+                        ):
+                            raise failure
                     if failed is not None:
                         raise failed
                     reply = self._reply(payload, request_id, usage)
-                    self._emit(replace(event, phase="replied", usage_status=usage.status))
+                    self._emit(
+                        replace(
+                            event,
+                            phase="replied",
+                            usage_status=usage.status,
+                            input_tokens=usage.input_tokens,
+                            output_tokens=usage.output_tokens,
+                        )
+                    )
                     return reply
         except asyncio.CancelledError:
             self._emit(
@@ -424,6 +507,13 @@ class NeuralDeepGateway:
                 self._budget.release_unsent(request_id)
             elif not accounted:
                 self._budget.record_usage(unknown)
+                if self.competition_mode:
+                    self._budget.halt(
+                        ErrorInfo(
+                            code="unknown_usage",
+                            message="competition dispatch outcome unknown; paid routes stopped",
+                        )
+                    )
 
     @staticmethod
     def _reply(payload: object, request_id: Id, usage: UsageRecord) -> LLMReply:

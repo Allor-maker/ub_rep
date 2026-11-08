@@ -58,9 +58,17 @@ def _csv_compute(text: str, args: dict, deadline: float) -> str:
             not isinstance(p, dict)
             or set(p) != {"column", "op", "value"}
             or p["column"] not in header
-            or p["op"] not in ("eq", "ge", "le")
-            or not isinstance(p["value"], str)
-            or not p["value"].strip()
+            or p["op"] not in ("eq", "ge", "le", "in")
+            or (p["op"] != "in" and (not isinstance(p["value"], str) or not p["value"].strip()))
+            or (
+                p["op"] == "in"
+                and (
+                    not isinstance(p["value"], list)
+                    or not 1 <= len(p["value"]) <= 16
+                    or any(not isinstance(v, str) or not v.strip() for v in p["value"])
+                    or len(set(p["value"])) != len(p["value"])
+                )
+            )
         ):
             raise ValueError("independent CSV filter")
 
@@ -89,6 +97,8 @@ def _csv_compute(text: str, args: dict, deadline: float) -> str:
                     raise ValueError("missing filter data")
                 if p["op"] == "eq":
                     accepted &= left == right
+                elif p["op"] == "in":
+                    accepted &= left in set(right)
                 elif p["op"] == "ge":
                     accepted &= number(left) >= number(right)
                 else:

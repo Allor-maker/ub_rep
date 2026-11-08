@@ -6,6 +6,7 @@ import json
 import os
 import time
 from pathlib import PurePosixPath
+from typing import cast
 
 from nsu_budget_agent.contracts.models import (
     ErrorInfo,
@@ -42,6 +43,10 @@ class LocalToolExecutor:
                 ),
                 ("audit_csv", "Independently audit CSV completeness and count identities or rows"),
                 ("lookup_markdown", "Resolve explicit entity attributes through Markdown profiles"),
+                (
+                    "retrieve_markdown",
+                    "Select hash-bound original profiles by explicit names and bounded links",
+                ),
             )
         )
 
@@ -159,6 +164,31 @@ class LocalToolExecutor:
                     ) from exc
                 return {"valid": valid, "answer": independent_answer}
             answer, evidence = csv_query(text, args, check), [path]
+        elif call.tool_name == "retrieve_markdown":
+            from .retrieval import retrieve_profiles
+
+            corpus_raw_paths, query = args.get("paths"), args.get("query")
+            if (
+                set(args) != {"paths", "query"}
+                or not isinstance(corpus_raw_paths, list)
+                or not 0 < len(corpus_raw_paths) <= 128
+                or any(not isinstance(p, str) for p in corpus_raw_paths)
+                or len(set(corpus_raw_paths)) != len(corpus_raw_paths)
+                or any(
+                    not isinstance(p, str) or PurePosixPath(p).suffix.casefold() != ".md"
+                    for p in corpus_raw_paths
+                )
+                or not isinstance(query, str)
+            ):
+                raise ValueError("bounded Markdown corpus required")
+            corpus_paths = cast(list[str], corpus_raw_paths)
+            if sum(allowed[parse_rel_path(p)].size_bytes for p in corpus_paths) > 65536:
+                raise ValueError("bounded Markdown corpus required")
+            documents = {p: read(p) for p in corpus_paths}
+            return {
+                "documents": retrieve_profiles(documents, query, check),
+                "source_count": len(corpus_paths),
+            }
         elif call.tool_name == "lookup_markdown":
             raw_paths = args["paths"]
             if not isinstance(raw_paths, list):

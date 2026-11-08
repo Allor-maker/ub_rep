@@ -6,8 +6,10 @@ from uuid import uuid4
 
 from nsu_budget_agent.contracts.models import (
     AttemptResult,
+    CandidateAnswer,
     CheckResult,
     ContractError,
+    OperationFailed,
     TaskSpec,
     ToolCall,
     ToolContext,
@@ -22,6 +24,48 @@ from nsu_budget_agent.task_io.workspace import joined_io, manifest, snapshot
 class LocalValidator:
     def __init__(self, tools: ToolExecutor) -> None:
         self.tools = tools
+
+    async def _independent_acquisition(
+        self, task: TaskSpec, candidate: CandidateAnswer, call: ToolCall, ctx: ToolContext
+    ) -> bool:
+        # The ordinary offline validator also needs an independent instruction
+        # binding and source recomputation for the newly supported search.
+        from .data_plan import _markdown_answer, _matches_original_text
+        from .instruction import instruction_matches
+
+        if not instruction_matches(task, call):
+            return False
+        artifacts = {a.path: a for a in task.artifacts}
+        allowed = {a.path: a for a in ctx.source_artifacts}
+        paths = tuple(parse_rel_path(cast(str, p)) for p in cast(list, call.arguments["paths"]))
+        if any(
+            path not in artifacts or path not in allowed or artifacts[path] != allowed[path]
+            for path in paths
+        ) or sum(artifacts[path].size_bytes for path in paths) > min(
+            ctx.limits.max_read_bytes, 8 * 1024 * 1024
+        ):
+            return False
+        documents = {}
+        for path in paths:
+            call_id = uuid4().hex
+            checked = await self.tools.execute(
+                call_id, ToolCall(tool_name="read_file", arguments={"path": path.as_posix()}), ctx
+            )
+            data = checked.data
+            if (
+                checked.call_id != call_id
+                or checked.tool_name != "read_file"
+                or checked.status != "ok"
+                or checked.truncated
+                or not isinstance(data, dict)
+                or data.get("path") != path.as_posix()
+                or not isinstance(data.get("text"), str)
+                or not _matches_original_text(cast(str, data["text"]), artifacts[path])
+            ):
+                raise ValueError("independent source unavailable")
+            documents[path] = cast(str, data["text"])
+        answer, evidence = _markdown_answer(documents, call.arguments, ctx.deadline_monotonic)
+        return answer == candidate.text and set(evidence) == set(candidate.evidence_paths)
 
     async def validate(
         self, task: TaskSpec, result: AttemptResult, ctx: ToolContext
@@ -166,6 +210,21 @@ class LocalValidator:
                         "csv_independent",
                         "passed" if correct else "failed",
                         "independent CSV completeness and order/row count checked",
+                    )
+            elif parsed.call.tool_name == "lookup_markdown":
+                try:
+                    correct = await self._independent_acquisition(task, candidate, parsed.call, ctx)
+                except (ValueError, KeyError, TypeError, TimeoutError, OperationFailed):
+                    add(
+                        "markdown_independent",
+                        "inconclusive",
+                        "independent Markdown check unavailable",
+                    )
+                else:
+                    add(
+                        "markdown_independent",
+                        "passed" if correct else "failed",
+                        "independent instruction binding and Markdown evidence checked",
                     )
         if task.check_hint == "unittest":
             add("visible_tests", "inconclusive", "isolated test execution is unavailable")

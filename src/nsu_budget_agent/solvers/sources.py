@@ -1,6 +1,7 @@
 """Explicit task-source selection; credentials are never model/tool inputs."""
 
 import re
+from functools import lru_cache
 from pathlib import PurePosixPath
 
 from nsu_budget_agent.contracts.models import ArtifactRef, TaskSpec
@@ -49,6 +50,7 @@ def sensitive_text(text: str) -> bool:
     )
 
 
+@lru_cache(maxsize=512)
 def selected_sources(task: TaskSpec) -> tuple[ArtifactRef, ...]:
     """Only explicit paths/directories or the closed local Markdown question.
 
@@ -58,7 +60,10 @@ def selected_sources(task: TaskSpec) -> tuple[ArtifactRef, ...]:
     for artifact in task.artifacts:
         raw = artifact.path.as_posix()
         explicit = (
-            re.search(r"(?<![\w/.-])" + re.escape(raw) + r"(?![\w/-]|\.[\w])", task.instruction)
+            re.search(
+                r"(?<![\w/.-])(?:workspace/)?" + re.escape(raw) + r"(?![\w/-]|\.[\w])",
+                task.instruction,
+            )
             is not None
         )
         scoped = (
@@ -70,6 +75,28 @@ def selected_sources(task: TaskSpec) -> tuple[ArtifactRef, ...]:
         )
         directory = re.search(r"The directory (\S+?)(?: in workspace/)? contains", task.instruction)
         scoped |= bool(directory and artifact.path.is_relative_to(directory[1].rstrip("/")))
+        # workspace/ names the task's public artifact root, not an OS path.
+        scoped |= artifact.path.suffix.casefold() == ".md" and any(
+            artifact.path.is_relative_to(directory)
+            for directory in re.findall(
+                r"(?<![\w/.-])workspace/([A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*)/(?![\w/-]|\.[\w./-])",
+                task.instruction,
+            )
+        )
+        if artifact.path.suffix.casefold() == ".md":
+            scoped |= any(
+                re.search(
+                    r"(?<![\w/.-])" + re.escape(parent.as_posix()) + r"/(?![\w/-]|\.[\w./-])",
+                    task.instruction,
+                )
+                is not None
+                for parent in artifact.path.parents
+                if parent.as_posix() != "."
+            )
+            if not re.search(r"[A-Za-z0-9_-]+/", task.instruction):
+                scoped |= bool(
+                    re.search(r"\b(?:Markdown|KB|knowledge base)\b", task.instruction, re.I)
+                )
         implicit_markdown = (
             re.fullmatch(
                 r"In which (?:year was|city is the headquarters of) (.+?)(?: born|'s (?:employer(?: founded)?|mentor born))\?",

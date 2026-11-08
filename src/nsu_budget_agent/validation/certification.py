@@ -1,6 +1,7 @@
 """Independent bounded Decimal/AST math; no executor calculation imports."""
 
 import ast
+import math
 import re
 import time
 from decimal import Context, Decimal, Inexact, localcontext
@@ -29,6 +30,19 @@ def independent_math(arguments: dict, deadline: float) -> str:
                 check(Decimal(0))
                 if depth > 16:
                     raise ValueError("independent expression depth")
+                if (
+                    isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Name)
+                    and node.func.id == "lcm"
+                    and not node.keywords
+                    and 2 <= len(node.args) <= 16
+                ):
+                    operands = [visit(argument, depth + 1) for argument in node.args]
+                    if any(
+                        value != int(value) or not 1 <= value <= 1_000_000 for value in operands
+                    ):
+                        raise ValueError("independent LCM operands")
+                    return check(Decimal(math.lcm(*(int(value) for value in operands))))
                 if isinstance(node, ast.Constant) and type(node.value) in (int, float):
                     raw = ast.get_source_segment(expression.strip(), node) or ""
                     if re.fullmatch(r"\d{1,40}(?:\.\d{1,20})?", raw) is None:

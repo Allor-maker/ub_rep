@@ -59,6 +59,82 @@ Gateway и связанные Protocol проверяются также чер�
 `unit/test_a71_allocation.py` и `unit/test_a71_certification.py`: source privacy,
 отвергнутые кандидаты, независимые вычисления, run isolation, v1 stop и 100 задач A4/A2.
 
+## A7.2
+
+`integration/test_a72_production.py` проверяет стандартный CLI без `--components`:
+offline без ключа, strict Router с mock-attestation и MockTransport, отказ до
+transport при неполной конфигурации или любом неподтверждённом профиле, явный
+offline при наличии ключа. Все provider profiles относятся только к mock.
+Пройденный scripted end-to-end не подтверждает реальные гарантии NeuralDeep;
+статус production и недостающие условия — в [отчёте A7.2](../docs/a72-report.md).
+Этот же файл проверяет competition по умолчанию без adapter и явный strict.
+`integration/test_a72_competition.py` проверяет настоящий SDK + A2/A3/A4/A5:
+разные Qwen ID, unknown/held, output cap, порядок reward, немедленную публикацию
+перед timeout/402/429/500. `a72_crash_worker.py` — только test subprocess:
+родитель принудительно завершает его внутри следующего mocked HTTP и проверяет
+сохранённые answer.txt без выполнения finally. Реальный transport запрещён.
+`unit/test_competition_usage.py` проверяет Units, cache и included/separate reasoning.
+
+## A7.3
+
+`integration/test_a73_quality.py` tests changed public parameters, independent
+math/CSV/Markdown verification, negative conditions, source scope and safe usage
+events. `unit/test_cli_deadline.py` separates attempt and run deadlines.
+
+Offline 20-task replay (no key, real SDK with network-denying MockTransport):
+
+```powershell
+$env:PYTHONPATH = 'src;.'
+.\.venv-a1\Scripts\python.exe -m tests.benchmarks.a73 --mode offline --source C:\VSCode\openJiuwen\live-test\tasks --grader C:\VSCode\openJiuwen\live-test\grade.py
+```
+
+Harness exports fresh public inputs under `experiments/runs/`; the external
+grader runs after agent exit. Mock results are not Qwen results. Live modes need
+explicit authorization and record one smoke/full allowance in a local guard.
+The A7.3 smoke allowance has been used; its failure means another live run needs
+new authorization. See [A7.3 report](../docs/a73-live-quality-report.md).
+
+## A7.4
+
+`integration/test_a74_reliability.py` runs 45 SDK scenarios: changed names, files,
+values and condition ordering, canonical/workspace paths, and malformed or
+semantically incomplete Search/CSV plans. A forged Reviewer accept cannot rescue
+a supported but mismatched plan. `unit/test_a74_guard.py` tests durable cumulative
+accounting, reservation of the next call, unknown usage/timeouts and the HTTP cap.
+`unit/test_a74_lcm.py` checks nested bounded LCM with changed operands and rejects
+invalid arity, zero/negative/fractional/oversized operands, keywords and arbitrary calls.
+
+`benchmarks/a74.py` is an explicitly invoked live diagnostic harness, never part
+of unittest discovery. It uses the real competition Gateway and SDK. Its single
+session journal is `experiments/runs/a74/journal.json`; do not delete/reinitialize
+it to obtain a fresh allowance. The session is authorized for at most 25 HTTP
+requests (quota/documentation GETs included conservatively) and 100000 reported Units in total.
+An exclusive lock prevents concurrent experiments; a stale lock or durable held
+amount requires investigation, never automatic release/restart. Estimates do
+not guarantee provider billing. No live request is made by the offline tests.
+Raw diagnostic files stay in the ignored, ACL-restricted session directory.
+See [A7.4 report](../docs/a74-llm-reliability-report.md) for results and limitations.
+
+## A7.5 recovery
+
+`integration/test_a75_recovery.py` covers parameterized inventory operations,
+record/quantity distinction, status-set predicates, original-hash Markdown
+excerpts, corpus bounds/distractors/injection, unsupported qualifications,
+controller-option isolation and one affordable output-length retry. Parse caches
+store immutable encodings and reconstruct fresh ToolCalls; source and answer
+validation are never cached. `unit/test_a75_session.py` verifies cumulative
+500000-Unit accounting, restart/unknown/error holds, cap breaches and redaction.
+
+`benchmarks/a75.py` is explicitly invoked; unittest never enables real network.
+It exports only public inputs from `live-test/tasks2`, never reads a grader or
+gold, and uses the real CLI/SDK/Gateway. Its exclusive lock and durable journal
+under `experiments/runs/a75/` span all subprocesses. Live mode requires a readable
+configured dotenv alias or LLM environment variables, checks provider quota and
+never overwrites an earlier experiment. Do not delete/reset the journal to
+obtain another allowance. A7.5 opts into `LLM_REQUIRE_INDEPENDENT=1` and
+`LLM_LENGTH_RETRY=1`; legacy defaults remain compatible. See
+[A7.5 report](../docs/a75-benchmark-recovery-report.md).
+
 ## A4
 
 `unit/test_task_loader.py`, `unit/test_planner.py` и `contracts/test_a4_planning.py`
