@@ -3,12 +3,16 @@
 import asyncio
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
+
+if TYPE_CHECKING:
+    from .decision import DecisionController, DecisionStore, DecisionTrace
 
 from nsu_budget_agent.contracts.models import (
     AttemptResult,
     BudgetSnapshot,
     CheckResult,
+    ContractError,
     ErrorInfo,
     LoadReport,
     RunConfig,
@@ -42,6 +46,8 @@ class Components:
     gateway: LLMGateway
     deterministic_solvers: tuple[str, ...] = ()
     planner: Planner | None = None
+    decision_store: "DecisionStore | None" = None
+    decision_controller: "DecisionController | None" = None
 
 
 ComponentFactory = Callable[[BudgetController, RunConfig], Components]
@@ -64,6 +70,7 @@ class RunReport:
     workflow_invocations: int
     component_steps: int
     assessment_errors: tuple[AssessmentFailure, ...] = ()
+    decision_traces: tuple["DecisionTrace", ...] = ()
 
 
 class AgentRunner:
@@ -75,13 +82,41 @@ class AgentRunner:
         components: Components,
         staging_parent: Path | None = None,
     ) -> None:
+        if components.decision_controller is not None:
+            from nsu_budget_agent.planning.decision import DecisionPortfolioPlanner
+
+            from .decision import DecisionController, DecisionStore
+
+            store = DecisionStore()
+            previous = components.decision_controller
+            controller = DecisionController(
+                store,
+                previous.model,
+                output_cap=previous.output_cap,
+                reservation_bound=previous.reservation_bound,
+            )
+            validator = getattr(components.validator, "for_run")(store)
+            components = replace(
+                components,
+                decision_store=store,
+                decision_controller=controller,
+                validator=validator,
+                planner=DecisionPortfolioPlanner(
+                    tools=components.tools.catalog(),
+                    deterministic_solvers=components.deterministic_solvers,
+                    controller=controller,
+                ),
+            )
         self.config, self.ledger, self.components = config, ledger, components
+        self._running = False
+        self._has_run = False
         self.workspaces = WorkspaceStore(parent=staging_parent)
         self.engine = JiuwenAdapter(
             ledger=ledger,
             gateway=components.gateway,
             tools=components.tools,
             workspaces=self.workspaces,
+            decision_controller=components.decision_controller,
         )
         self.publisher = AnswerOnlyPublisher(self.workspaces)
         self.policy = V1AcceptancePolicy()
@@ -130,6 +165,23 @@ class AgentRunner:
                 await joined_io(temporary.cleanup)
 
     async def run(self, tasks_dir: Path) -> RunReport:
+        if self._running:
+            raise ContractError("overlapping run calls on one AgentRunner are forbidden")
+        self._running = True
+        try:
+            if self.components.decision_store is not None:
+                self.components.decision_store.begin_run()
+            self.engine.results.clear()
+            self.engine.workflow_invocations = 0
+            self.engine.component_steps = 0
+            if self._has_run:
+                self.publisher = AnswerOnlyPublisher(self.workspaces)
+            self._has_run = True
+            return await self._run(tasks_dir)
+        finally:
+            self._running = False
+
+    async def _run(self, tasks_dir: Path) -> RunReport:
         # Initialize the installed SDK before assigning any attempt deadline.
         def prepare_sdk():
             from openjiuwen.core.workflow import Workflow  # type: ignore[import-untyped]
@@ -175,6 +227,7 @@ class AgentRunner:
         # history is shared across attempts. A repeated generic call after an
         # evidence/validation failure would therefore have no new evidence.
         exhausted_routes: set[tuple[str, str]] = set()
+        budget_deferred_tasks: set[str] = set()
         loop = asyncio.get_running_loop()
         try:
             while loop.time() < self.config.deadline_monotonic:
@@ -215,6 +268,8 @@ class AgentRunner:
                                 state,
                                 status="deferred"
                                 if self.ledger.snapshot().blocked
+                                or task_id in getattr(planner, "deferred_task_ids", ())
+                                or task_id in budget_deferred_tasks
                                 else "exhausted",
                             )
                     break
@@ -231,17 +286,26 @@ class AgentRunner:
                     result = await self.engine.run_attempt(
                         task, registry.get(decision.solver_id), decision.budget
                     )
+                    if (
+                        self.components.decision_controller is not None
+                        and result.status == "budget_exhausted"
+                        and result.error is not None
+                        and result.error.code == "budget_exhausted"
+                    ):
+                        budget_deferred_tasks.add(task.task_id)
                     current = self.progress[task.task_id]
                     current = replace(current, last_result=result)
                     if result.status == "candidate":
                         validation = await self._validate(task, result)
                         acceptance = self.policy.decide(result, validation)
+                        published = False
                         if (
                             acceptance.status == "accept"
                             and loop.time() < decision.budget.deadline_monotonic
                         ):
                             receipt = await self.publisher.publish(task, result, acceptance)
                             receipts.append(receipt)
+                            published = receipt.status in ("saved", "already_saved")
                             current = replace(
                                 current,
                                 status="submitted"
@@ -255,6 +319,10 @@ class AgentRunner:
                             ):
                                 exhausted_routes.add((task.task_id, decision.solver_id))
                             current = replace(current, status="pending")
+                        if self.components.decision_store is not None:
+                            self.components.decision_store.finish(
+                                task, validated=acceptance.status == "accept", published=published
+                            )
                     elif result.status in ("internal_error", "tool_error", "cancelled", "deadline"):
                         current = replace(current, status="exhausted")
                     else:
@@ -287,6 +355,8 @@ class AgentRunner:
                     ):
                         current = replace(current, status="exhausted")
                     self.progress[task.task_id] = current
+                    if task.task_id in budget_deferred_tasks:
+                        self.progress[task.task_id] = replace(current, status="deferred")
                 except asyncio.CancelledError:
                     last = self.engine.results[-1] if self.engine.results else None
                     saved = self.publisher.receipt_for(task.task_root)
@@ -306,6 +376,24 @@ class AgentRunner:
                         self.progress[task.task_id], status="exhausted", last_result=result
                     )
                 finally:
+                    store = self.components.decision_store
+                    if store is not None:
+                        from nsu_budget_agent.solvers.decision import State
+
+                        route = store.get(task)
+                        if (
+                            task.task_id not in budget_deferred_tasks
+                            and decision.solver_id == "generic"
+                            and route.state
+                            not in (
+                                State.SKIP,
+                                State.PUBLISH,
+                            )
+                        ):
+                            route.skip("paid attempt ended without publication")
+                        # Every route is exhausted after one physical attempt. A
+                        # new role/strategy continues inside that bounded workflow.
+                        exhausted_routes.add((task.task_id, decision.solver_id))
                     if result is not None:
                         await joined_io(self.workspaces.cleanup, result.attempt_id)
                     elif self.engine.results and self.engine.results[-1].task_id == task.task_id:
@@ -316,6 +404,11 @@ class AgentRunner:
                     and loop.time() >= self.config.deadline_monotonic
                 ):
                     self.progress[task_id] = replace(state, status="exhausted")
+            if self.components.decision_store is not None:
+                for task in loaded.tasks:
+                    route = self.components.decision_store.get(task)
+                    if self.progress[task.task_id].status != "deferred":
+                        route.skip("portfolio ended without another eligible action")
             return RunReport(
                 loaded=loaded,
                 progress=tuple(self.progress.values()),
@@ -325,6 +418,9 @@ class AgentRunner:
                 workflow_invocations=self.engine.workflow_invocations,
                 component_steps=self.engine.component_steps,
                 assessment_errors=tuple(assessment_errors),
+                decision_traces=self.components.decision_store.traces()
+                if self.components.decision_store is not None
+                else (),
             )
         finally:
             for attempt_id in tuple(self.workspaces.records):
