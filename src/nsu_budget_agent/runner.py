@@ -20,7 +20,7 @@ from . import planner, workflow
 from .config import Config
 from .llm import Ledger, LLMClient, LLMError, LLMUnavailable
 from .publish import Publisher, atomic_write
-from .solvers import coding, fastpath, program
+from .solvers import coding, fastpath, precheck, program
 from .solvers.common import SolveResult
 from .tasks import Task, load_tasks
 from .trace import Trace
@@ -64,6 +64,10 @@ class Runner:
         self.traces: dict[str, Trace] = {}
         self.engines: dict[str, int] = {}
         self._log_lock = asyncio.Lock()
+        self.codes: dict[str, str] = {}  # task id -> script behind the published LLM answer
+        self.reward_mid = 0.0  # median reward of the run
+        self.reward_high = 0.0  # reward from which a task counts as high-value
+        self.verify_from = float("inf")  # reward from which LLM answers are double-checked
 
     # ------------------------------------------------------------------ helpers
     def _log(self, message: str) -> None:
@@ -81,6 +85,8 @@ class Runner:
                 self.publisher.apply_files(task, result.files)
             self.publisher.publish(task, result.answer)
             record.status, record.answer, record.source = "answered", result.answer, source
+            if result.code:
+                self.codes[task.id] = result.code
             record.reason = result.reason
         elif result.status == "infeasible":
             record.status, record.source, record.reason = "infeasible", source, result.reason
@@ -93,8 +99,9 @@ class Runner:
             f"total={self.ledger.spent:9.1f} {('-> ' + record.answer[:40]) if record.answer else record.reason[:60]}"
         )
 
-    async def _phase(self, name: str, task: Task, solve_step) -> None:
+    async def _phase(self, name: str, task: Task, solve_step, finish=None) -> None:
         """Run one task phase as an openJiuwen workflow: solve -> publish."""
+        finish = finish or self._finish
         holder: dict[str, tuple[SolveResult, str]] = {}
 
         async def solve() -> None:
@@ -103,7 +110,7 @@ class Runner:
         async def publish() -> None:
             if "result" in holder:
                 result, source = holder["result"]
-                self._finish(task, result, source)
+                finish(task, result, source)
 
         started = time.monotonic()
         run = await workflow.run_phase(f"{name}:{task.id}", [("solve", solve), ("publish", publish)])
@@ -138,6 +145,19 @@ class Runner:
                 return result, "fastpath"
 
             await self._phase("triage", task, fast_step)
+        elif (
+            self.config.reward_aware
+            and not task.is_coding
+            and task.reward < self.reward_high
+            and (missing := precheck.missing_names(task))
+        ):
+            reason = "not in knowledge base: " + ", ".join(missing)[:200]
+            trace.note("precheck", status="infeasible", reason=reason)
+
+            async def precheck_step():
+                return SolveResult("infeasible", reason=reason), "precheck"
+
+            await self._phase("triage", task, precheck_step)
         elif task.is_coding and self.llm is None:
 
             async def local_step():
@@ -169,15 +189,82 @@ class Runner:
 
     def _wants_second_opinion(self, task: Task) -> bool:
         record = self.records[task.id]
-        if record.source == "fastpath" or record.status not in ("failed", "infeasible", "pending"):
+        if record.source in ("fastpath", "precheck") or record.status not in ("failed", "infeasible", "pending"):
             return False
         if record.reason in ("estimated cost exceeds remaining budget", "llm unavailable"):
             return False
+        if self.config.reward_aware and record.status == "infeasible" and task.reward < self.reward_mid:
+            return False  # low value: accept the model's UNSOLVABLE without paying for a second opinion
         if task.is_coding:
             # Coding is verified by tests; a model's UNSOLVABLE or a no-progress stop on
             # (likely contradictory) tests is not worth another expensive multi-call attempt.
-            return record.status == "failed" and not record.reason.startswith(("no progress", "per-task"))
+            if record.status != "failed" or record.reason.startswith("per-task"):
+                return False
+            # "no progress" is typical for contradictory tests, but a hard real bug looks the same:
+            # worth one stronger attempt only when the task is valuable enough.
+            return not record.reason.startswith("no progress") or task.reward >= self.reward_mid
         return True
+
+    @staticmethod
+    def _same(a: str, b: str) -> bool:
+        x, y = a.strip().casefold(), b.strip().casefold()
+        if x == y:
+            return True
+        try:
+            return abs(float(x) - float(y)) < 1e-9
+        except ValueError:
+            return False
+
+    def _wants_verification(self, task: Task) -> bool:
+        record = self.records[task.id]
+        return (
+            record.status == "answered"
+            and record.source.startswith("pass1:")
+            and not task.is_coding  # coding answers are already verified by the tests
+            and (task.reward >= self.verify_from or task.type in self.config.verify_types)
+        )
+
+    async def _verify(self, task: Task, model: str) -> None:
+        """Independent solve by the second model. On disagreement the same model JUDGES the two
+        programs side by side (spotting a bug in a comparison is easier than avoiding it, and a
+        re-solve repeats systematic mistakes); the answer changes only if the judge picks the new one."""
+        if self.llm is None:
+            return
+        trace = self.traces[task.id]
+        record = self.records[task.id]
+        cap = max(600.0, 6 * record.estimate)
+
+        async def solve_once(temperature: float) -> SolveResult:
+            coro = program.solve(task, self.llm, model, trace, repairs=1, timeout=self.config.sandbox_timeout_s,
+                                 cost_cap=cap, temperature=temperature)
+            return await asyncio.wait_for(coro, timeout=max(5.0, min(240.0, self._time_left() - 15)))
+
+        async def solve_step():
+            first = await solve_once(0.0)
+            if first.status != "answer" or not first.answer or self._same(first.answer, record.answer):
+                return first, f"verify:{model}"
+            original = self.codes.get(task.id)
+            if not original or not first.code:
+                return SolveResult("failed", reason="no programs to compare"), f"verify:{model}"
+            verdict = await program.judge(task, self.llm, model, trace, (original, record.answer),
+                                          (first.code, first.answer))
+            trace.note("judge", original=record.answer, verifier=first.answer, verdict=verdict)
+            if verdict == "B":
+                return first, f"verify:{model}"
+            return SolveResult("failed", reason=f"judge kept the original ({verdict})"), f"verify:{model}"
+
+        def finish(task: Task, result: SolveResult, source: str) -> None:
+            record.attempts.append(f"{source}:{result.status}")
+            record.cost, record.calls = round(trace.cost, 1), trace.calls
+            if result.status == "answer" and result.answer and not self._same(result.answer, record.answer):
+                self._log(f"{task.id:<24} verify changed {record.answer[:30]!r} -> {result.answer[:30]!r}")
+                self.publisher.publish(task, result.answer)
+                record.answer, record.source = result.answer, source
+            else:
+                self._log(f"{task.id:<24} verify {'agrees' if result.status == 'answer' else 'kept'} "
+                          f"cost={record.cost:7.1f} total={self.ledger.spent:9.1f}")
+
+        await self._phase("verify", task, solve_step, finish)
 
     async def _pool(self, tasks: list[Task], fn) -> None:
         queue: asyncio.Queue[Task] = asyncio.Queue()
@@ -191,7 +278,8 @@ class Runner:
                 task = queue.get_nowait()
                 record = self.records[task.id]
                 if not self.ledger.can_afford(record.estimate):
-                    record.status, record.reason = "skipped", "estimated cost exceeds remaining budget"
+                    if record.status != "answered":  # never downgrade an answer we already have
+                        record.status, record.reason = "skipped", "estimated cost exceeds remaining budget"
                     continue
                 try:
                     await fn(task)
@@ -210,6 +298,14 @@ class Runner:
         for task in tasks:
             self.records[task.id] = Record(id=task.id, type=task.type, reward=task.reward)
             self.traces[task.id] = Trace(task.id)
+        rewards = sorted(t.reward for t in tasks) or [0.0]
+
+        def quantile(q: float) -> float:
+            return rewards[min(len(rewards) - 1, int(q * len(rewards)))]
+
+        self.reward_mid, self.reward_high = quantile(0.5), quantile(0.75)
+        if self.config.verify_top > 0:
+            self.verify_from = quantile(1 - self.config.verify_top)
         try:
             for task in tasks:  # free, CPU-only
                 try:
@@ -243,6 +339,11 @@ class Runner:
                     await self._pool(
                         retry, lambda t: self._attempt(t, second_model, "pass2", self.config.max_repairs)
                     )
+                verify = [t for t in tasks if self._wants_verification(t)]
+                verify.sort(key=lambda t: -t.reward)
+                if verify and self.llm.available and second_model != self.config.model:
+                    self._log(f"verification: {len(verify)} answers with {second_model}")
+                    await self._pool(verify, lambda t: self._verify(t, second_model))
         finally:
             if self.llm is not None:
                 await self.llm.aclose()

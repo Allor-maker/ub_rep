@@ -34,3 +34,4 @@ Thumbs.db
 answer.txt
 logs/
 *.log
+/experiments/archive/

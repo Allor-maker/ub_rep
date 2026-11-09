@@ -1,0 +1,1653 @@
+{
+ "summary": {
+  "tasks": 100,
+  "answered": 92,
+  "answered_free": 0,
+  "infeasible": 8,
+  "failed": 0,
+  "not_attempted": 0,
+  "reward_answered": 432.0,
+  "tokens_spent": 30898.0,
+  "llm_calls": 142,
+  "llm_disabled_reason": null,
+  "estimated_tokens": 19709.6,
+  "engines": {
+   "openjiuwen": 130
+  },
+  "elapsed_s": 178.6,
+  "model": "qwen3.8-27b-noreason",
+  "second_model": "qwen3.8-27b"
+ },
+ "tasks": [
+  {
+   "id": "coding_24000",
+   "type": "coding",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 316.6,
+   "cost": 402.4,
+   "calls": 1,
+   "seconds": 8.35,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24001",
+   "type": "coding",
+   "reward": 6.0,
+   "status": "infeasible",
+   "answer": "",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "model: UNSOLVABLE",
+   "estimate": 303.4,
+   "cost": 43.0,
+   "calls": 1,
+   "seconds": 0.67,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:infeasible"
+   ]
+  },
+  {
+   "id": "coding_24002",
+   "type": "coding",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 315.0,
+   "cost": 190.3,
+   "calls": 1,
+   "seconds": 2.25,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24003",
+   "type": "coding",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 313.4,
+   "cost": 246.1,
+   "calls": 1,
+   "seconds": 2.69,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24004",
+   "type": "coding",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 320.8,
+   "cost": 420.1,
+   "calls": 1,
+   "seconds": 4.38,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24005",
+   "type": "coding",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 312.1,
+   "cost": 157.0,
+   "calls": 1,
+   "seconds": 1.87,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24006",
+   "type": "coding",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 319.7,
+   "cost": 375.3,
+   "calls": 1,
+   "seconds": 8.64,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24007",
+   "type": "coding",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 312.9,
+   "cost": 140.2,
+   "calls": 1,
+   "seconds": 1.59,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24008",
+   "type": "coding",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 321.1,
+   "cost": 459.1,
+   "calls": 1,
+   "seconds": 6.81,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24009",
+   "type": "coding",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 314.7,
+   "cost": 214.0,
+   "calls": 1,
+   "seconds": 4.13,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24010",
+   "type": "coding",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 314.4,
+   "cost": 1216.9,
+   "calls": 2,
+   "seconds": 12.78,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24011",
+   "type": "coding",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 315.0,
+   "cost": 179.9,
+   "calls": 1,
+   "seconds": 1.69,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24012",
+   "type": "coding",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 315.6,
+   "cost": 219.1,
+   "calls": 1,
+   "seconds": 1.67,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24013",
+   "type": "coding",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 317.6,
+   "cost": 265.4,
+   "calls": 1,
+   "seconds": 3.85,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24014",
+   "type": "coding",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 326.0,
+   "cost": 366.3,
+   "calls": 1,
+   "seconds": 7.75,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24015",
+   "type": "coding",
+   "reward": 6.0,
+   "status": "infeasible",
+   "answer": "",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "model: UNSOLVABLE",
+   "estimate": 302.8,
+   "cost": 43.4,
+   "calls": 1,
+   "seconds": 0.45,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:infeasible"
+   ]
+  },
+  {
+   "id": "coding_24016",
+   "type": "coding",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 317.3,
+   "cost": 170.7,
+   "calls": 1,
+   "seconds": 5.69,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24017",
+   "type": "coding",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 313.8,
+   "cost": 315.6,
+   "calls": 1,
+   "seconds": 6.19,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24018",
+   "type": "coding",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 322.0,
+   "cost": 309.0,
+   "calls": 1,
+   "seconds": 3.92,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24019",
+   "type": "coding",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 323.2,
+   "cost": 607.1,
+   "calls": 1,
+   "seconds": 6.32,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24020",
+   "type": "coding",
+   "reward": 9.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 318.7,
+   "cost": 690.5,
+   "calls": 1,
+   "seconds": 5.6,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24021",
+   "type": "coding",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 321.0,
+   "cost": 456.5,
+   "calls": 1,
+   "seconds": 5.55,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24022",
+   "type": "coding",
+   "reward": 9.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 315.1,
+   "cost": 206.9,
+   "calls": 1,
+   "seconds": 2.12,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "coding_24023",
+   "type": "coding",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass2:qwen3.8-27b",
+   "reason": "",
+   "estimate": 314.6,
+   "cost": 2548.0,
+   "calls": 3,
+   "seconds": 29.66,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:failed",
+    "pass2:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "coding_24024",
+   "type": "coding",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "DONE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 312.5,
+   "cost": 287.8,
+   "calls": 1,
+   "seconds": 3.28,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23000",
+   "type": "data_analysis",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "26123.35",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.5,
+   "cost": 188.6,
+   "calls": 1,
+   "seconds": 2.1,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23001",
+   "type": "data_analysis",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "233",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.5,
+   "cost": 180.0,
+   "calls": 1,
+   "seconds": 1.36,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23002",
+   "type": "data_analysis",
+   "reward": 9.0,
+   "status": "answered",
+   "answer": "39",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 167.3,
+   "cost": 155.2,
+   "calls": 1,
+   "seconds": 1.34,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23003",
+   "type": "data_analysis",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "15704.0",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.2,
+   "cost": 165.2,
+   "calls": 1,
+   "seconds": 1.53,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23004",
+   "type": "data_analysis",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "41",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 162.8,
+   "cost": 155.2,
+   "calls": 1,
+   "seconds": 2.8,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23005",
+   "type": "data_analysis",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "1078",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.3,
+   "cost": 182.6,
+   "calls": 1,
+   "seconds": 1.39,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23006",
+   "type": "data_analysis",
+   "reward": 6.0,
+   "status": "infeasible",
+   "answer": "",
+   "source": "pass2:qwen3.8-27b",
+   "reason": "script: Exchange rate from USD to JPY on 2025-12-31 is not present in the supplied files and cannot be looked up online.",
+   "estimate": 168.6,
+   "cost": 631.2,
+   "calls": 2,
+   "seconds": 12.88,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:infeasible",
+    "pass2:qwen3.8-27b:infeasible"
+   ]
+  },
+  {
+   "id": "data_analysis_23007",
+   "type": "data_analysis",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "311",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.5,
+   "cost": 139.2,
+   "calls": 1,
+   "seconds": 1.35,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23008",
+   "type": "data_analysis",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "valves,valve,sleeve",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 165.0,
+   "cost": 249.0,
+   "calls": 1,
+   "seconds": 1.64,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23009",
+   "type": "data_analysis",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "599",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 156.8,
+   "cost": 240.7,
+   "calls": 1,
+   "seconds": 2.52,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23010",
+   "type": "data_analysis",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "42574.46",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 165.8,
+   "cost": 209.2,
+   "calls": 1,
+   "seconds": 1.99,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23011",
+   "type": "data_analysis",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "27167",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 158.1,
+   "cost": 205.6,
+   "calls": 1,
+   "seconds": 1.74,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23012",
+   "type": "data_analysis",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "2765",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 171.9,
+   "cost": 255.7,
+   "calls": 1,
+   "seconds": 1.5,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23013",
+   "type": "data_analysis",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "16035.0",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.6,
+   "cost": 188.4,
+   "calls": 1,
+   "seconds": 1.61,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23014",
+   "type": "data_analysis",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "154",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.4,
+   "cost": 138.7,
+   "calls": 1,
+   "seconds": 0.94,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23015",
+   "type": "data_analysis",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "96",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.8,
+   "cost": 149.6,
+   "calls": 1,
+   "seconds": 1.86,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23016",
+   "type": "data_analysis",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "Central",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.8,
+   "cost": 231.9,
+   "calls": 1,
+   "seconds": 1.6,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23017",
+   "type": "data_analysis",
+   "reward": 6.0,
+   "status": "infeasible",
+   "answer": "",
+   "source": "pass2:qwen3.8-27b",
+   "reason": "script: ",
+   "estimate": 165.5,
+   "cost": 995.5,
+   "calls": 3,
+   "seconds": 12.29,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:infeasible",
+    "pass2:qwen3.8-27b:infeasible"
+   ]
+  },
+  {
+   "id": "data_analysis_23018",
+   "type": "data_analysis",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "32",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.1,
+   "cost": 163.7,
+   "calls": 1,
+   "seconds": 0.91,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23019",
+   "type": "data_analysis",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "598",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 157.3,
+   "cost": 189.4,
+   "calls": 1,
+   "seconds": 1.85,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23020",
+   "type": "data_analysis",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "25806.21",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 165.1,
+   "cost": 207.7,
+   "calls": 1,
+   "seconds": 1.7,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23021",
+   "type": "data_analysis",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "511",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.2,
+   "cost": 139.0,
+   "calls": 1,
+   "seconds": 1.16,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23022",
+   "type": "data_analysis",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "bolts",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.7,
+   "cost": 213.1,
+   "calls": 1,
+   "seconds": 1.86,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23023",
+   "type": "data_analysis",
+   "reward": 9.0,
+   "status": "answered",
+   "answer": "3954",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 168.0,
+   "cost": 204.0,
+   "calls": 1,
+   "seconds": 1.66,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_23024",
+   "type": "data_analysis",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "3",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.0,
+   "cost": 137.2,
+   "calls": 1,
+   "seconds": 3.07,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_21000",
+   "type": "math",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "31693799",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 145.7,
+   "cost": 224.4,
+   "calls": 2,
+   "seconds": 2.5,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21001",
+   "type": "math",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "56",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 146.6,
+   "cost": 429.6,
+   "calls": 2,
+   "seconds": 7.2700000000000005,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21002",
+   "type": "math",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "35",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 145.7,
+   "cost": 407.3,
+   "calls": 3,
+   "seconds": 3.8400000000000003,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21003",
+   "type": "math",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "58104729088840",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 147.6,
+   "cost": 304.8,
+   "calls": 2,
+   "seconds": 3.39,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21004",
+   "type": "math",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "18",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 146.8,
+   "cost": 410.8,
+   "calls": 2,
+   "seconds": 4.32,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21005",
+   "type": "math",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "647",
+   "source": "verify:qwen3.8-27b",
+   "reason": "",
+   "estimate": 146.3,
+   "cost": 574.0,
+   "calls": 3,
+   "seconds": 5.53,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21006",
+   "type": "math",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "-171",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 148.9,
+   "cost": 374.2,
+   "calls": 2,
+   "seconds": 4.67,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21007",
+   "type": "math",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "19383",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 145.2,
+   "cost": 353.4,
+   "calls": 2,
+   "seconds": 5.84,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21008",
+   "type": "math",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "1140",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 146.4,
+   "cost": 271.0,
+   "calls": 2,
+   "seconds": 5.04,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21009",
+   "type": "math",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "377",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 145.8,
+   "cost": 376.1,
+   "calls": 3,
+   "seconds": 4.15,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21010",
+   "type": "math",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "12",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 147.3,
+   "cost": 238.2,
+   "calls": 2,
+   "seconds": 3.52,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21011",
+   "type": "math",
+   "reward": 6.0,
+   "status": "infeasible",
+   "answer": "",
+   "source": "pass2:qwen3.8-27b",
+   "reason": "script: ",
+   "estimate": 148.1,
+   "cost": 456.6,
+   "calls": 2,
+   "seconds": 5.23,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:infeasible",
+    "pass2:qwen3.8-27b:infeasible"
+   ]
+  },
+  {
+   "id": "math_21012",
+   "type": "math",
+   "reward": 9.0,
+   "status": "answered",
+   "answer": "-23",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 147.3,
+   "cost": 260.6,
+   "calls": 2,
+   "seconds": 4.02,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21013",
+   "type": "math",
+   "reward": 9.0,
+   "status": "answered",
+   "answer": "8400",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 148.6,
+   "cost": 267.8,
+   "calls": 2,
+   "seconds": 4.31,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21014",
+   "type": "math",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "4766",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 147.8,
+   "cost": 272.6,
+   "calls": 2,
+   "seconds": 3.04,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21015",
+   "type": "math",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "1540",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 146.7,
+   "cost": 280.6,
+   "calls": 2,
+   "seconds": 3.09,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21016",
+   "type": "math",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "110",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 146.7,
+   "cost": 527.6,
+   "calls": 2,
+   "seconds": 4.96,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21017",
+   "type": "math",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "8902",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 145.3,
+   "cost": 218.0,
+   "calls": 2,
+   "seconds": 1.6400000000000001,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21018",
+   "type": "math",
+   "reward": 6.0,
+   "status": "infeasible",
+   "answer": "",
+   "source": "pass2:qwen3.8-27b",
+   "reason": "script: ",
+   "estimate": 147.5,
+   "cost": 612.8,
+   "calls": 2,
+   "seconds": 6.48,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:infeasible",
+    "pass2:qwen3.8-27b:infeasible"
+   ]
+  },
+  {
+   "id": "math_21019",
+   "type": "math",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "144",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 145.4,
+   "cost": 276.4,
+   "calls": 2,
+   "seconds": 2.9699999999999998,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21020",
+   "type": "math",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "491796152",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 147.6,
+   "cost": 373.6,
+   "calls": 2,
+   "seconds": 4.109999999999999,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21021",
+   "type": "math",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "4",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 146.1,
+   "cost": 279.4,
+   "calls": 2,
+   "seconds": 3.8200000000000003,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21022",
+   "type": "math",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "319770",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 146.4,
+   "cost": 377.0,
+   "calls": 2,
+   "seconds": 4.07,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21023",
+   "type": "math",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "917",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 145.5,
+   "cost": 216.4,
+   "calls": 2,
+   "seconds": 2.11,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "math_21024",
+   "type": "math",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "159654417813094881600",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 147.7,
+   "cost": 361.0,
+   "calls": 2,
+   "seconds": 4.0600000000000005,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "search_22000",
+   "type": "search",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "Екатеринбург",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.9,
+   "cost": 252.4,
+   "calls": 1,
+   "seconds": 2.79,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22001",
+   "type": "search",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "T2-643",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.7,
+   "cost": 194.8,
+   "calls": 1,
+   "seconds": 2.36,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22002",
+   "type": "search",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "Y-379-C",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.4,
+   "cost": 232.8,
+   "calls": 2,
+   "seconds": 1.39,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22003",
+   "type": "search",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "71",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 159.5,
+   "cost": 164.8,
+   "calls": 1,
+   "seconds": 2.8,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22004",
+   "type": "search",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "47",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 158.3,
+   "cost": 111.6,
+   "calls": 1,
+   "seconds": 1.16,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22005",
+   "type": "search",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "SKU-07",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 160.0,
+   "cost": 181.2,
+   "calls": 1,
+   "seconds": 1.6,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22006",
+   "type": "search",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "Ilya Flint",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.2,
+   "cost": 228.1,
+   "calls": 2,
+   "seconds": 32.31,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22007",
+   "type": "search",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "Казань",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.8,
+   "cost": 184.4,
+   "calls": 1,
+   "seconds": 2.81,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22008",
+   "type": "search",
+   "reward": 6.0,
+   "status": "infeasible",
+   "answer": "",
+   "source": "pass2:qwen3.8-27b",
+   "reason": "script: The 2027 forecast for Garnet-54B is not available in the supplied data.",
+   "estimate": 155.7,
+   "cost": 591.0,
+   "calls": 2,
+   "seconds": 6.02,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:infeasible",
+    "pass2:qwen3.8-27b:infeasible"
+   ]
+  },
+  {
+   "id": "search_22009",
+   "type": "search",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "235",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.2,
+   "cost": 228.8,
+   "calls": 2,
+   "seconds": 1.96,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22010",
+   "type": "search",
+   "reward": 9.0,
+   "status": "answered",
+   "answer": "428",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 160.4,
+   "cost": 139.6,
+   "calls": 1,
+   "seconds": 1.39,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22011",
+   "type": "search",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "Омск",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.4,
+   "cost": 282.9,
+   "calls": 1,
+   "seconds": 2.31,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22012",
+   "type": "search",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "X-908-B",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.2,
+   "cost": 225.6,
+   "calls": 2,
+   "seconds": 32.13,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22013",
+   "type": "search",
+   "reward": 9.0,
+   "status": "answered",
+   "answer": "29",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 159.1,
+   "cost": 151.9,
+   "calls": 1,
+   "seconds": 1.64,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22014",
+   "type": "search",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "SKU-06",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 161.2,
+   "cost": 183.3,
+   "calls": 1,
+   "seconds": 1.21,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22015",
+   "type": "search",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "Пермь",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.5,
+   "cost": 236.2,
+   "calls": 2,
+   "seconds": 5.48,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22016",
+   "type": "search",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "1",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 158.7,
+   "cost": 159.1,
+   "calls": 1,
+   "seconds": 2.13,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22017",
+   "type": "search",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "4",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 161.7,
+   "cost": 143.1,
+   "calls": 1,
+   "seconds": 1.35,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22018",
+   "type": "search",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "ACTIVE",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.5,
+   "cost": 241.4,
+   "calls": 1,
+   "seconds": 34.71,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22019",
+   "type": "search",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "3",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 159.2,
+   "cost": 130.1,
+   "calls": 1,
+   "seconds": 0.86,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22020",
+   "type": "search",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "Z-816-C",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 157.0,
+   "cost": 237.4,
+   "calls": 1,
+   "seconds": 2.41,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22021",
+   "type": "search",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "Омск",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.6,
+   "cost": 226.9,
+   "calls": 1,
+   "seconds": 33.23,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22022",
+   "type": "search",
+   "reward": 2.0,
+   "status": "answered",
+   "answer": "Y-546-A",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.1,
+   "cost": 231.0,
+   "calls": 2,
+   "seconds": 1.57,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22023",
+   "type": "search",
+   "reward": 4.0,
+   "status": "answered",
+   "answer": "Z-329-C",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.3,
+   "cost": 227.0,
+   "calls": 1,
+   "seconds": 1.61,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_22024",
+   "type": "search",
+   "reward": 6.0,
+   "status": "infeasible",
+   "answer": "",
+   "source": "pass2:qwen3.8-27b",
+   "reason": "script: No D9 entry in units.md; office city for Juniper-78A is not documented.",
+   "estimate": 156.9,
+   "cost": 522.2,
+   "calls": 2,
+   "seconds": 7.98,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:infeasible",
+    "pass2:qwen3.8-27b:infeasible"
+   ]
+  }
+ ]
+}

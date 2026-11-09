@@ -69,6 +69,14 @@ class Config:
     sandbox_timeout_s: float = 20.0
     log_dir: Path | None = None
     second_pass: bool = True
+    # Reward-aware effort: cheap handling of low-reward tasks, extra checks for high-reward ones.
+    reward_aware: bool = True
+    # Share of tasks (by reward, top) whose LLM answers are re-solved by the second model.
+    verify_top: float = 0.0  # off: on hard100 it cost +21% tokens and changed no answer
+    # Task types whose LLM answers are always re-solved by the second model. Maths: the model
+    # translates text into a formula itself, so a wrong formula runs without any error
+    # (on a hard set: 2 fixes out of 2 changes; data/search verification changed nothing).
+    verify_types: tuple[str, ...] = ("math",)
     extra: dict = field(default_factory=dict)
 
     @property
@@ -107,4 +115,11 @@ def parse_config(argv: list[str] | None = None, environ: dict | None = None) -> 
         llm_timeout_s=_env_float(env, "AGENT_LLM_TIMEOUT_S", 120.0) or 120.0,
         log_dir=Path(log_dir) if log_dir else None,
         second_pass=env.get("AGENT_SECOND_PASS", "1") != "0",
+        reward_aware=env.get("AGENT_REWARD_AWARE", "1") != "0",
+        verify_top=max(0.0, min(1.0, _env_float(env, "AGENT_VERIFY_TOP", 0.0) or 0.0)),
+        verify_types=tuple(
+            t.strip().lower()
+            for t in env.get("AGENT_VERIFY_TYPES", "math").split(",")
+            if t.strip() and t.strip().lower() != "none"
+        ),
     )

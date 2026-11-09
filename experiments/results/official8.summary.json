@@ -7,14 +7,14 @@
   "failed": 0,
   "not_attempted": 0,
   "reward_answered": 20.0,
-  "tokens_spent": 407.7,
+  "tokens_spent": 414.5,
   "llm_calls": 2,
   "llm_disabled_reason": null,
-  "estimated_tokens": 613.8,
+  "estimated_tokens": 624.9,
   "engines": {
    "openjiuwen": 8
   },
-  "elapsed_s": 10.9,
+  "elapsed_s": 5.1,
   "model": "qwen3.8-27b-noreason",
   "second_model": "qwen3.8-27b"
  },
@@ -27,10 +27,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 311.1,
-   "cost": 224.0,
+   "estimate": 316.6,
+   "cost": 227.2,
    "calls": 1,
-   "seconds": 6.89,
+   "seconds": 1.52,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -43,10 +43,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 302.7,
-   "cost": 183.7,
+   "estimate": 308.3,
+   "cost": 187.3,
    "calls": 1,
-   "seconds": 7.01,
+   "seconds": 1.52,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -62,7 +62,7 @@
    "estimate": 0.0,
    "cost": 0.0,
    "calls": 0,
-   "seconds": 0.91,
+   "seconds": 0.81,
    "attempts": [
     "fastpath:answer"
    ]
