@@ -1,3 +1,0 @@
-# Optional local lint/static checks; C01 itself uses only Python 3.11 stdlib.
-ruff==0.14.3
-mypy==1.18.2

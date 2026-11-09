@@ -1,39 +1,11 @@
-# Deny the entire repository context, then allow only the runtime source tree.
+# Only the runtime goes into the build context.
 **
 !Dockerfile
-!requirements-runtime.txt
+!requirements.lock
 !run_agent.py
 !src/
 !src/nsu_budget_agent/
 !src/nsu_budget_agent/**
-
-# A copied source tree must not contain development data or SDK probe code.
 **/__pycache__/
 **/*.py[cod]
-**/*.md
-**/*.txt
-!requirements-runtime.txt
-**/*.json
-**/*.csv
-**/*.yaml
-**/*.yml
-**/*.toml
-**/*.ini
-**/*.lock
-**/*.log
-**/*.key
-**/*.pem
-**/*.p12
-**/*.pfx
-**/*.secret
 **/.env*
-**/credentials/
-**/secrets/
-**/credentials.py
-**/secrets.py
-**/tests/
-**/test_*.py
-**/*_test.py
-**/expected*
-**/gold*
-src/nsu_budget_agent/orchestration/sdk_probe.py

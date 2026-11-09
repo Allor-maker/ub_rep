@@ -1,5 +1,7 @@
-# Fixed Python 3.11 patch and OS family; see A6 report for digest/lock limitations.
-FROM python:3.11.11-slim-bookworm AS dependencies
+# Astra v2 harness on openJiuwen 0.1.19.
+# Pinned base image tag and a full pip lock (requirements.lock, installed with --no-deps).
+# Works with the official read-only launch: --read-only --tmpfs /tmp --workdir /app.
+FROM python:3.11.11-slim-bookworm
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -7,43 +9,25 @@ ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PATH="/opt/venv/bin:${PATH}"
 
 RUN python -m venv "$VIRTUAL_ENV"
-COPY requirements-runtime.txt /tmp/requirements-runtime.txt
-RUN python -m pip install --no-compile --timeout 30 --retries 2 -r /tmp/requirements-runtime.txt \
-    && python -m pip check \
-    && find /opt/venv/lib/python3.11/site-packages -type d \( -name tests -o -name test -o -name __pycache__ \) -prune -exec rm -rf '{}' + \
-    && find /opt/venv/lib/python3.11/site-packages -type f \( -name 'test_*.py' -o -name '*_test.py' -o -name '*.pyc' \) -delete
+COPY requirements.lock /tmp/requirements.lock
+RUN pip install --no-compile --timeout 60 --retries 5 --no-deps -r /tmp/requirements.lock \
+    && pip check \
+    && find /opt/venv -type d -name __pycache__ -prune -exec rm -rf '{}' + \
+    && rm /tmp/requirements.lock
 
-FROM dependencies AS app_payload
+COPY run_agent.py /app/run_agent.py
+COPY src/nsu_budget_agent /app/src/nsu_budget_agent
 
-COPY src/nsu_budget_agent /project/nsu_budget_agent
-COPY run_agent.py /payload/run_agent.py
-# The final payload contains only runtime Python files, even if the source tree
-# acquires unrelated data or test fixtures later.
-RUN mkdir -p /payload/src \
-    && cd /project \
-    && find nsu_budget_agent -type f -name '*.py' ! -name 'test_*.py' ! -name '*_test.py' ! -name 'sdk_probe.py' -exec cp --parents -t /payload/src '{}' + \
-    && test -f /payload/src/nsu_budget_agent/solvers/composition.py
-
-FROM python:3.11.11-slim-bookworm AS runtime
-
-ENV VIRTUAL_ENV=/opt/venv \
-    PATH="/opt/venv/bin:${PATH}" \
-    PYTHONPATH=/app/src \
+ENV PYTHONPATH=/app/src \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     HOME=/tmp \
     TMPDIR=/tmp \
     XDG_CACHE_HOME=/tmp/.cache \
-    HF_HOME=/tmp/huggingface \
     HF_HUB_OFFLINE=1 \
-    HF_DATASETS_OFFLINE=1 \
     TRANSFORMERS_OFFLINE=1 \
     MPLCONFIGDIR=/tmp/matplotlib
 
-COPY --from=dependencies /opt/venv /opt/venv
-COPY --from=app_payload /payload /app
-RUN mkdir -p /data/tasks
-
-# SDK 0.1.19 may write relative logs; /tmp is writable on the read-only rootfs.
-WORKDIR /tmp
+RUN mkdir -p /data/tasks && python -c "import nsu_budget_agent.runner"
+WORKDIR /app
 CMD ["python", "/app/run_agent.py", "--tasks-dir", "/data/tasks"]
