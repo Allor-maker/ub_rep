@@ -1,1 +1,1 @@
-"""Production solvers; no model fallback or task-controlled imports."""
+"""Task solvers: zero-token fast path, generic program synthesis, coding."""

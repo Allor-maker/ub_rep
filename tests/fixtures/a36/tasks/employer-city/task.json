@@ -1,7 +1,0 @@
-{
-  "task_id": "employer-city",
-  "instruction": "Which city is listed as Headquarters for the Employer of Mira Chen in profiles/*.md?",
-  "type": "search",
-  "check": "exact_str",
-  "reward": 1
-}

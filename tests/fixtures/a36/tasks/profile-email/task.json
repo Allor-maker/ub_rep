@@ -1,7 +1,0 @@
-{
-  "task_id": "profile-email",
-  "instruction": "Look up the Email of Mira Chen in people/*.md.",
-  "type": "search",
-  "check": "exact_str",
-  "reward": 1
-}

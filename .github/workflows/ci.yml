@@ -1,0 +1,41 @@
+name: CI
+
+"on":
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # Unit tests need only httpx; without openJiuwen the phases run directly (same code path).
+      - run: pip install httpx==0.28.1 ruff==0.8.6
+      - run: ruff check src tools tests run_agent.py
+      - run: PYTHONPATH=src:tests python -m unittest discover -s tests -t tests -v
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - run: docker build -t astra:ci .
+      - name: Official launch flags, no LLM key (fast path only)
+        run: |
+          mkdir -p /tmp/tasks/math_1
+          echo '{"task_id":"math_1","task_type":"math","reward":1,"instruction":"A warehouse starts with 10 boxes. It ships 2 boxes per day for 3 days. How many boxes does it have at the end?"}' > /tmp/tasks/math_1/task.json
+          chmod -R 777 /tmp/tasks
+          docker run --rm -v /tmp/tasks:/data/tasks:rw --read-only --tmpfs /tmp:rw,size=2g -e HOME=/tmp \
+            --cap-drop ALL --security-opt no-new-privileges --pids-limit 512 --workdir /app \
+            --entrypoint python astra:ci /app/run_agent.py --tasks-dir /data/tasks
+          test "$(cat /tmp/tasks/math_1/answer.txt)" = "4"

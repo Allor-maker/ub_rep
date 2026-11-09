@@ -1,0 +1,824 @@
+{
+ "summary": {
+  "tasks": 50,
+  "answered": 50,
+  "answered_free": 0,
+  "infeasible": 0,
+  "failed": 0,
+  "not_attempted": 0,
+  "reward_answered": 3900.0,
+  "tokens_spent": 6140.3,
+  "llm_calls": 50,
+  "llm_disabled_reason": null,
+  "estimated_tokens": 7069.1,
+  "engines": {
+   "openjiuwen": 50,
+   "direct": 1
+  },
+  "elapsed_s": 72.0,
+  "model": "qwen3.8-27b-noreason",
+  "second_model": "qwen3.8-27b"
+ },
+ "tasks": [
+  {
+   "id": "data_analysis_3000",
+   "type": "data_analysis",
+   "reward": 8.0,
+   "status": "answered",
+   "answer": "267",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 140.0,
+   "cost": 143.6,
+   "calls": 1,
+   "seconds": 1.21,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3001",
+   "type": "data_analysis",
+   "reward": 11.0,
+   "status": "answered",
+   "answer": "17",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 138.1,
+   "cost": 110.4,
+   "calls": 1,
+   "seconds": 1.26,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3002",
+   "type": "data_analysis",
+   "reward": 17.0,
+   "status": "answered",
+   "answer": "7",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 138.1,
+   "cost": 108.7,
+   "calls": 1,
+   "seconds": 1.0,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3003",
+   "type": "data_analysis",
+   "reward": 23.0,
+   "status": "answered",
+   "answer": "231",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 139.9,
+   "cost": 113.0,
+   "calls": 1,
+   "seconds": 2.25,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3004",
+   "type": "data_analysis",
+   "reward": 45.0,
+   "status": "answered",
+   "answer": "1942",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 139.7,
+   "cost": 160.8,
+   "calls": 1,
+   "seconds": 3.55,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3005",
+   "type": "data_analysis",
+   "reward": 53.0,
+   "status": "answered",
+   "answer": "5",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 138.4,
+   "cost": 139.0,
+   "calls": 1,
+   "seconds": 2.05,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3006",
+   "type": "data_analysis",
+   "reward": 65.0,
+   "status": "answered",
+   "answer": "62",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 138.5,
+   "cost": 128.1,
+   "calls": 1,
+   "seconds": 2.65,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3007",
+   "type": "data_analysis",
+   "reward": 73.0,
+   "status": "answered",
+   "answer": "1952",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 140.0,
+   "cost": 165.2,
+   "calls": 1,
+   "seconds": 2.35,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3008",
+   "type": "data_analysis",
+   "reward": 86.0,
+   "status": "answered",
+   "answer": "2140",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 139.8,
+   "cost": 162.2,
+   "calls": 1,
+   "seconds": 1.47,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3009",
+   "type": "data_analysis",
+   "reward": 99.0,
+   "status": "answered",
+   "answer": "4",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 139.9,
+   "cost": 134.4,
+   "calls": 1,
+   "seconds": 0.98,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3010",
+   "type": "data_analysis",
+   "reward": 112.0,
+   "status": "answered",
+   "answer": "78",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 137.7,
+   "cost": 168.7,
+   "calls": 1,
+   "seconds": 2.03,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3011",
+   "type": "data_analysis",
+   "reward": 126.0,
+   "status": "answered",
+   "answer": "2752",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 139.5,
+   "cost": 145.8,
+   "calls": 1,
+   "seconds": 31.69,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3012",
+   "type": "data_analysis",
+   "reward": 136.0,
+   "status": "answered",
+   "answer": "4",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 138.5,
+   "cost": 116.3,
+   "calls": 1,
+   "seconds": 1.77,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3013",
+   "type": "data_analysis",
+   "reward": 150.0,
+   "status": "answered",
+   "answer": "90",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 138.6,
+   "cost": 173.4,
+   "calls": 1,
+   "seconds": 1.1,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3014",
+   "type": "data_analysis",
+   "reward": 164.0,
+   "status": "answered",
+   "answer": "3436",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 140.4,
+   "cost": 195.1,
+   "calls": 1,
+   "seconds": 2.01,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "data_analysis_3015",
+   "type": "data_analysis",
+   "reward": 188.0,
+   "status": "answered",
+   "answer": "3149",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 140.0,
+   "cost": 181.2,
+   "calls": 1,
+   "seconds": 5.82,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3000",
+   "type": "math",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "2586",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 126.1,
+   "cost": 81.2,
+   "calls": 1,
+   "seconds": 1.06,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3001",
+   "type": "math",
+   "reward": 10.0,
+   "status": "answered",
+   "answer": "4981",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 127.9,
+   "cost": 95.6,
+   "calls": 1,
+   "seconds": 1.14,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3002",
+   "type": "math",
+   "reward": 13.0,
+   "status": "answered",
+   "answer": "4081",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 125.9,
+   "cost": 64.8,
+   "calls": 1,
+   "seconds": 0.83,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3003",
+   "type": "math",
+   "reward": 19.0,
+   "status": "answered",
+   "answer": "1937",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 126.1,
+   "cost": 63.2,
+   "calls": 1,
+   "seconds": 1.78,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3004",
+   "type": "math",
+   "reward": 24.0,
+   "status": "answered",
+   "answer": "1093",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 127.9,
+   "cost": 78.5,
+   "calls": 1,
+   "seconds": 1.68,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3005",
+   "type": "math",
+   "reward": 29.0,
+   "status": "answered",
+   "answer": "3047",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 125.9,
+   "cost": 64.8,
+   "calls": 1,
+   "seconds": 0.58,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3006",
+   "type": "math",
+   "reward": 44.0,
+   "status": "answered",
+   "answer": "501",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 124.4,
+   "cost": 173.8,
+   "calls": 1,
+   "seconds": 1.57,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3007",
+   "type": "math",
+   "reward": 52.0,
+   "status": "answered",
+   "answer": "1050",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 124.6,
+   "cost": 92.6,
+   "calls": 1,
+   "seconds": 1.0,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3008",
+   "type": "math",
+   "reward": 60.0,
+   "status": "answered",
+   "answer": "1548",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 125.2,
+   "cost": 85.0,
+   "calls": 1,
+   "seconds": 1.77,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3009",
+   "type": "math",
+   "reward": 68.0,
+   "status": "answered",
+   "answer": "840",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 126.8,
+   "cost": 143.4,
+   "calls": 1,
+   "seconds": 1.37,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3010",
+   "type": "math",
+   "reward": 77.0,
+   "status": "answered",
+   "answer": "969",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 126.4,
+   "cost": 87.9,
+   "calls": 1,
+   "seconds": 2.01,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3011",
+   "type": "math",
+   "reward": 86.0,
+   "status": "answered",
+   "answer": "3600",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 125.4,
+   "cost": 76.9,
+   "calls": 1,
+   "seconds": 0.6,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3012",
+   "type": "math",
+   "reward": 96.0,
+   "status": "answered",
+   "answer": "639",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 124.4,
+   "cost": 173.8,
+   "calls": 1,
+   "seconds": 1.15,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3013",
+   "type": "math",
+   "reward": 108.0,
+   "status": "answered",
+   "answer": "3600",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 124.6,
+   "cost": 91.5,
+   "calls": 1,
+   "seconds": 1.38,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3014",
+   "type": "math",
+   "reward": 119.0,
+   "status": "answered",
+   "answer": "1890",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 125.2,
+   "cost": 85.0,
+   "calls": 1,
+   "seconds": 1.66,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3015",
+   "type": "math",
+   "reward": 133.0,
+   "status": "answered",
+   "answer": "210",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 126.8,
+   "cost": 66.4,
+   "calls": 1,
+   "seconds": 0.67,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3016",
+   "type": "math",
+   "reward": 149.0,
+   "status": "answered",
+   "answer": "680",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 126.4,
+   "cost": 87.9,
+   "calls": 1,
+   "seconds": 1.67,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "math_3017",
+   "type": "math",
+   "reward": 167.0,
+   "status": "answered",
+   "answer": "5049",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 125.3,
+   "cost": 63.8,
+   "calls": 1,
+   "seconds": 1.67,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3000",
+   "type": "search",
+   "reward": 7.0,
+   "status": "answered",
+   "answer": "1980",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 156.1,
+   "cost": 87.7,
+   "calls": 1,
+   "seconds": 0.85,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3001",
+   "type": "search",
+   "reward": 10.0,
+   "status": "answered",
+   "answer": "Dresden",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 155.6,
+   "cost": 110.2,
+   "calls": 1,
+   "seconds": 1.18,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3002",
+   "type": "search",
+   "reward": 12.0,
+   "status": "answered",
+   "answer": "2002",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 156.9,
+   "cost": 87.6,
+   "calls": 1,
+   "seconds": 0.98,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3003",
+   "type": "search",
+   "reward": 16.0,
+   "status": "answered",
+   "answer": "Porto",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 155.7,
+   "cost": 112.7,
+   "calls": 1,
+   "seconds": 1.36,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3004",
+   "type": "search",
+   "reward": 50.0,
+   "status": "answered",
+   "answer": "1995",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.8,
+   "cost": 120.6,
+   "calls": 1,
+   "seconds": 0.84,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3005",
+   "type": "search",
+   "reward": 57.0,
+   "status": "answered",
+   "answer": "Brno",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 162.3,
+   "cost": 119.5,
+   "calls": 1,
+   "seconds": 0.98,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3006",
+   "type": "search",
+   "reward": 69.0,
+   "status": "answered",
+   "answer": "1993",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 160.8,
+   "cost": 144.4,
+   "calls": 1,
+   "seconds": 1.49,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3007",
+   "type": "search",
+   "reward": 75.0,
+   "status": "answered",
+   "answer": "2020",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 161.7,
+   "cost": 120.8,
+   "calls": 1,
+   "seconds": 1.14,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3008",
+   "type": "search",
+   "reward": 84.0,
+   "status": "answered",
+   "answer": "Bristol",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 162.4,
+   "cost": 147.8,
+   "calls": 1,
+   "seconds": 2.44,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3009",
+   "type": "search",
+   "reward": 93.0,
+   "status": "answered",
+   "answer": "Graz",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 162.3,
+   "cost": 129.6,
+   "calls": 1,
+   "seconds": 1.45,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3010",
+   "type": "search",
+   "reward": 103.0,
+   "status": "answered",
+   "answer": "May",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 161.7,
+   "cost": 148.4,
+   "calls": 1,
+   "seconds": 1.15,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3011",
+   "type": "search",
+   "reward": 114.0,
+   "status": "answered",
+   "answer": "October",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 163.7,
+   "cost": 132.6,
+   "calls": 1,
+   "seconds": 0.75,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3012",
+   "type": "search",
+   "reward": 125.0,
+   "status": "answered",
+   "answer": "2002",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.0,
+   "cost": 140.9,
+   "calls": 1,
+   "seconds": 0.98,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3013",
+   "type": "search",
+   "reward": 138.0,
+   "status": "answered",
+   "answer": "Brno",
+   "source": "pass2:qwen3.8-27b",
+   "reason": "",
+   "estimate": 163.0,
+   "cost": 195.6,
+   "calls": 1,
+   "seconds": 61.6,
+   "attempts": [
+    "pass2:qwen3.8-27b:answer"
+   ]
+  },
+  {
+   "id": "search_3014",
+   "type": "search",
+   "reward": 151.0,
+   "status": "answered",
+   "answer": "Ghent",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 162.4,
+   "cost": 171.4,
+   "calls": 1,
+   "seconds": 1.65,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  },
+  {
+   "id": "search_3015",
+   "type": "search",
+   "reward": 179.0,
+   "status": "answered",
+   "answer": "Dresden",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 164.3,
+   "cost": 148.5,
+   "calls": 1,
+   "seconds": 2.58,
+   "attempts": [
+    "pass1:qwen3.8-27b-noreason:answer"
+   ]
+  }
+ ]
+}

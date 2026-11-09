@@ -1,7 +1,0 @@
-{
-  "task_id": "sum-payments",
-  "instruction": "From ledger.csv, total the amount values for rows whose region is 'west'.",
-  "type": "data_analysis",
-  "check": "exact_str",
-  "reward": 1
-}
