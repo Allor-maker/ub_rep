@@ -73,10 +73,10 @@ class Config:
     reward_aware: bool = True
     # Share of tasks (by reward, top) whose LLM answers are re-solved by the second model.
     verify_top: float = 0.0  # off: on hard100 it cost +21% tokens and changed no answer
-    # Task types whose LLM answers are always re-solved by the second model. Maths: the model
-    # translates text into a formula itself, so a wrong formula runs without any error
-    # (on a hard set: 2 fixes out of 2 changes; data/search verification changed nothing).
-    verify_types: tuple[str, ...] = ("math",)
+    # Task types whose LLM answers are always re-solved by the second model (a judge settles
+    # disagreements). Maths: a wrong formula runs without any error. Data: a missed filter
+    # condition (e.g. counting refunds as purchases) runs without any error too.
+    verify_types: tuple[str, ...] = ("math", "data_analysis")
     extra: dict = field(default_factory=dict)
 
     @property
@@ -119,7 +119,7 @@ def parse_config(argv: list[str] | None = None, environ: dict | None = None) -> 
         verify_top=max(0.0, min(1.0, _env_float(env, "AGENT_VERIFY_TOP", 0.0) or 0.0)),
         verify_types=tuple(
             t.strip().lower()
-            for t in env.get("AGENT_VERIFY_TYPES", "math").split(",")
+            for t in env.get("AGENT_VERIFY_TYPES", "math,data_analysis").split(",")
             if t.strip() and t.strip().lower() != "none"
         ),
     )

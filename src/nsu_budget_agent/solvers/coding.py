@@ -100,7 +100,11 @@ async def solve(
     repairs: int = 2,
     timeout: float = 60.0,
     cost_cap: float = 2500.0,
+    spec_model: str | None = None,
 ) -> SolveResult:
+    """spec_model: used instead of model when the visible tests cannot decide correctness
+    ("review": they already pass, "implement": there are none) - the specification text is
+    then the only judge, and the reasoning model reads subtle requirements more carefully."""
     sandbox = make_sandbox(task.dir, task.workspace)
     try:
         argv = test_command(task, sandbox)
@@ -115,6 +119,8 @@ async def solve(
             return SolveResult("failed", reason="tests fail and no LLM")
         # fix: failing tests; review: tests pass but the task specifies more; implement: no tests.
         mode = "fix" if has_tests and not result.ok else ("review" if has_tests else "implement")
+        if mode != "fix" and spec_model:
+            model = spec_model
         sources = []
         for path in list_files(sandbox, limit=200):
             rel = path.relative_to(sandbox).as_posix()
@@ -123,8 +129,10 @@ async def solve(
         tail = {
             "fix": f"TEST OUTPUT ({' '.join(argv[1:])}):\n{output[-3000:]}",
             "review": "The visible tests already pass, but they may not cover the whole specification in the "
-                      "TASK. If the code fully implements it, reply exactly OK; otherwise reply with corrected files.",
-            "implement": "There are no runnable tests. Implement the specification from the TASK.",
+                      "TASK. If the code fully implements it, reply exactly OK; otherwise reply with corrected files. "
+                      "If the specification is self-contradictory or impossible, reply exactly UNSOLVABLE.",
+            "implement": "There are no runnable tests. Implement the specification from the TASK. If the "
+                         "specification is self-contradictory or impossible to satisfy, reply exactly UNSOLVABLE.",
         }[mode]
         user = f"TASK:\n{task.instruction}\n\nFILES:\n" + spotlight("\n".join(sources)) + "\n\n" + tail
         messages = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}]

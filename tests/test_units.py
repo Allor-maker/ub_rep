@@ -224,6 +224,14 @@ class HelperTests(unittest.TestCase):
         self.assertEqual(wrapped.count("</untrusted_files>"), 1)
         self.assertTrue(wrapped.endswith("</untrusted_files>"))
 
+    def test_format_problem(self):
+        from nsu_budget_agent.solvers.common import format_problem
+        self.assertIsNone(format_problem("158", "exact_int"))
+        self.assertIsNone(format_problem("11750.0", "exact_decimal"))
+        self.assertIsNone(format_problem("Osaka", "exact_str"))
+        self.assertIsNotNone(format_problem("Sample row: {'a': 1}", "exact_int"))
+        self.assertIsNotNone(format_problem("x" * 300, "exact_str"))
+
     def test_extract_code(self):
         self.assertEqual(extract_code("text\n```python\nprint(1)\n```\n"), "print(1)\n")
         self.assertIsNone(extract_code("UNSOLVABLE"))

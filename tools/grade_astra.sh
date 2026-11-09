@@ -27,8 +27,8 @@ print(f"marked UNSOLVABLE: {marked}")
 EOF
 chmod -R a+rwX "$GRADED"
 docker run --rm --network none --read-only --tmpfs /tmp:rw,size=512m --cap-drop ALL \
-  --security-opt no-new-privileges --memory 2g --pids-limit 256 \
+  --security-opt no-new-privileges --memory 2g --pids-limit 256 --user "$(id -u):$(id -g)" \
   -v "$GRADER:/grader:ro" -v "$GRADED:/tasks:ro" -v "$RUN/logs:/out:rw" -w /tmp \
   python:3.12-slim python /grader/grade.py --tasks /tasks --verbose --json-report /out/astra_report.json \
   > "$RUN/logs/astra_grade.txt"
-tail -8 "$RUN/logs/astra_grade.txt"
+grep -vE '^[a-z_]+_[0-9]+ ' "$RUN/logs/astra_grade.txt"  # summary lines only, not per-task

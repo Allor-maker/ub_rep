@@ -170,13 +170,17 @@ class Runner:
             return
         trace = self.traces[task.id]
         timeout = max(5.0, min(240.0, self._time_left() - 15))
-        # Cap one task's spend relative to its estimate (protects against repair loops).
-        cap = max(600.0, 6 * self.records[task.id].estimate)
+        # Cap one task's spend relative to its estimate (protects against repair loops). Coding
+        # gets more room: implementing a function from a specification can take several long
+        # replies (a 6x cap cut off a correct medium task; the run uses ~35% of the budget).
+        estimate = self.records[task.id].estimate
+        cap = max(1500.0, 15 * estimate) if task.is_coding else max(600.0, 6 * estimate)
 
         async def solve_step():
             if task.is_coding:
                 coro = coding.solve(
-                    task, self.llm, model, trace, repairs=self.config.coding_repairs, cost_cap=cap
+                    task, self.llm, model, trace, repairs=self.config.coding_repairs, cost_cap=cap,
+                    spec_model=self.config.second_model,
                 )
             else:
                 coro = program.solve(

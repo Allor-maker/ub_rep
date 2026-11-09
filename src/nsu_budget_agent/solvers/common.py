@@ -54,6 +54,22 @@ def spotlight(data: str) -> str:
     return f"<untrusted_files>\n{safe}\n</untrusted_files>"
 
 
+_FORMATS = {
+    "exact_int": re.compile(r"-?\d+"),
+    "exact_decimal": re.compile(r"-?\d+(?:\.\d+)?"),
+}
+
+
+def format_problem(answer: str, check: str) -> str | None:
+    """Why the answer cannot be valid for the task's declared check, or None if it can."""
+    pattern = _FORMATS.get(check)
+    if pattern is not None and not pattern.fullmatch(answer):
+        return f"the task expects a {check.removeprefix('exact_')} number, but the script printed {answer[:80]!r}"
+    if len(answer) > 200:
+        return "the last printed line is too long to be a final answer (debug output?)"
+    return None
+
+
 def last_line(stdout: str) -> str:
     lines = [line for line in stdout.splitlines() if line.strip()]
     return lines[-1] if lines else ""

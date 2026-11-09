@@ -1,20 +1,20 @@
 {
  "summary": {
   "tasks": 100,
-  "answered": 85,
+  "answered": 87,
   "answered_free": 39,
-  "infeasible": 15,
+  "infeasible": 13,
   "failed": 0,
   "not_attempted": 0,
-  "reward_answered": 489.0,
-  "tokens_spent": 14930.5,
-  "llm_calls": 70,
+  "reward_answered": 497.0,
+  "tokens_spent": 16416.4,
+  "llm_calls": 79,
   "llm_disabled_reason": null,
-  "estimated_tokens": 12128.6,
+  "estimated_tokens": 12231.4,
   "engines": {
-   "openjiuwen": 110
+   "openjiuwen": 121
   },
-  "elapsed_s": 60.0,
+  "elapsed_s": 101.3,
   "model": "qwen3.8-27b-noreason",
   "second_model": "qwen3.8-27b"
  },
@@ -27,10 +27,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 307.0,
-   "cost": 170.5,
+   "estimate": 308.6,
+   "cost": 172.2,
    "calls": 1,
-   "seconds": 1.24,
+   "seconds": 2.02,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -43,10 +43,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 312.7,
-   "cost": 214.5,
+   "estimate": 314.4,
+   "cost": 216.1,
    "calls": 1,
-   "seconds": 1.49,
+   "seconds": 3.51,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -59,10 +59,10 @@
    "answer": "",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "model: UNSOLVABLE",
-   "estimate": 310.3,
-   "cost": 517.4,
+   "estimate": 311.9,
+   "cost": 529.9,
    "calls": 2,
-   "seconds": 4.3,
+   "seconds": 3.17,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:infeasible"
    ]
@@ -75,10 +75,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 308.3,
-   "cost": 179.5,
+   "estimate": 309.9,
+   "cost": 180.9,
    "calls": 1,
-   "seconds": 1.48,
+   "seconds": 1.93,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -91,10 +91,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 304.1,
-   "cost": 139.3,
+   "estimate": 305.7,
+   "cost": 141.5,
    "calls": 1,
-   "seconds": 1.21,
+   "seconds": 1.19,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -107,10 +107,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 320.4,
-   "cost": 251.9,
+   "estimate": 322.1,
+   "cost": 254.8,
    "calls": 1,
-   "seconds": 1.78,
+   "seconds": 1.14,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -123,10 +123,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 306.9,
-   "cost": 163.3,
+   "estimate": 308.6,
+   "cost": 165.1,
    "calls": 1,
-   "seconds": 1.93,
+   "seconds": 2.07,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -139,10 +139,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 315.4,
-   "cost": 203.2,
+   "estimate": 317.0,
+   "cost": 205.3,
    "calls": 1,
-   "seconds": 1.79,
+   "seconds": 1.27,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -155,10 +155,10 @@
    "answer": "",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "model: UNSOLVABLE",
-   "estimate": 313.5,
-   "cost": 551.0,
-   "calls": 3,
-   "seconds": 4.91,
+   "estimate": 315.1,
+   "cost": 470.2,
+   "calls": 2,
+   "seconds": 3.21,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:infeasible"
    ]
@@ -171,10 +171,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 319.7,
-   "cost": 223.5,
+   "estimate": 321.3,
+   "cost": 225.7,
    "calls": 1,
-   "seconds": 1.73,
+   "seconds": 2.11,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -187,10 +187,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 303.0,
-   "cost": 149.2,
+   "estimate": 304.6,
+   "cost": 151.8,
    "calls": 1,
-   "seconds": 1.32,
+   "seconds": 1.02,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -203,10 +203,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 302.2,
-   "cost": 122.2,
+   "estimate": 303.8,
+   "cost": 124.2,
    "calls": 1,
-   "seconds": 1.12,
+   "seconds": 1.5,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -219,10 +219,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 313.1,
-   "cost": 213.2,
+   "estimate": 314.7,
+   "cost": 215.6,
    "calls": 1,
-   "seconds": 1.95,
+   "seconds": 1.43,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -235,10 +235,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 314.2,
-   "cost": 221.8,
+   "estimate": 315.8,
+   "cost": 223.8,
    "calls": 1,
-   "seconds": 1.69,
+   "seconds": 3.16,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -251,10 +251,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 303.9,
-   "cost": 143.0,
+   "estimate": 305.5,
+   "cost": 145.0,
    "calls": 1,
-   "seconds": 1.13,
+   "seconds": 1.44,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -267,10 +267,10 @@
    "answer": "",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "model: UNSOLVABLE",
-   "estimate": 317.6,
-   "cost": 831.1,
+   "estimate": 319.3,
+   "cost": 532.6,
    "calls": 2,
-   "seconds": 7.24,
+   "seconds": 4.17,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:infeasible"
    ]
@@ -283,10 +283,10 @@
    "answer": "",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "model: UNSOLVABLE",
-   "estimate": 307.8,
-   "cost": 529.3,
+   "estimate": 309.4,
+   "cost": 439.2,
    "calls": 2,
-   "seconds": 5.27,
+   "seconds": 3.11,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:infeasible"
    ]
@@ -299,10 +299,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 304.0,
-   "cost": 160.1,
+   "estimate": 305.6,
+   "cost": 162.1,
    "calls": 1,
-   "seconds": 2.01,
+   "seconds": 1.51,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -315,10 +315,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 313.9,
-   "cost": 223.7,
+   "estimate": 315.5,
+   "cost": 224.8,
    "calls": 1,
-   "seconds": 2.23,
+   "seconds": 3.07,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -331,10 +331,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 319.8,
-   "cost": 248.9,
+   "estimate": 321.4,
+   "cost": 250.6,
    "calls": 1,
-   "seconds": 2.1,
+   "seconds": 31.64,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -347,10 +347,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 312.1,
-   "cost": 183.8,
+   "estimate": 313.8,
+   "cost": 185.9,
    "calls": 1,
-   "seconds": 1.47,
+   "seconds": 2.01,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -363,10 +363,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 319.8,
-   "cost": 248.6,
+   "estimate": 321.4,
+   "cost": 250.9,
    "calls": 1,
-   "seconds": 3.25,
+   "seconds": 4.26,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -379,10 +379,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 305.6,
-   "cost": 158.1,
+   "estimate": 307.2,
+   "cost": 160.1,
    "calls": 1,
-   "seconds": 1.18,
+   "seconds": 2.4,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -395,10 +395,10 @@
    "answer": "",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "model: UNSOLVABLE",
-   "estimate": 312.4,
-   "cost": 701.3,
-   "calls": 3,
-   "seconds": 5.64,
+   "estimate": 314.0,
+   "cost": 728.7,
+   "calls": 2,
+   "seconds": 4.19,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:infeasible"
    ]
@@ -411,10 +411,10 @@
    "answer": "DONE",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 320.5,
-   "cost": 234.6,
+   "estimate": 322.1,
+   "cost": 236.7,
    "calls": 1,
-   "seconds": 1.88,
+   "seconds": 2.13,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -430,7 +430,7 @@
    "estimate": 0.0,
    "cost": 0.0,
    "calls": 0,
-   "seconds": 0.84,
+   "seconds": 0.87,
    "attempts": [
     "fastpath:answer"
    ]
@@ -491,12 +491,13 @@
    "answer": "0",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 153.0,
-   "cost": 148.0,
-   "calls": 1,
-   "seconds": 2.07,
+   "estimate": 155.2,
+   "cost": 394.8,
+   "calls": 2,
+   "seconds": 8.280000000000001,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:answer"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
    ]
   },
   {
@@ -523,12 +524,13 @@
    "answer": "5",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 150.4,
-   "cost": 155.7,
-   "calls": 1,
-   "seconds": 1.7,
+   "estimate": 152.6,
+   "cost": 369.2,
+   "calls": 2,
+   "seconds": 11.81,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:answer"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
    ]
   },
   {
@@ -539,12 +541,13 @@
    "answer": "24958",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 151.3,
-   "cost": 143.9,
-   "calls": 1,
-   "seconds": 1.78,
+   "estimate": 153.5,
+   "cost": 382.6,
+   "calls": 2,
+   "seconds": 3.84,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:answer"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
    ]
   },
   {
@@ -571,12 +574,13 @@
    "answer": "9846",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 151.4,
-   "cost": 173.2,
-   "calls": 1,
-   "seconds": 1.97,
+   "estimate": 153.6,
+   "cost": 400.2,
+   "calls": 2,
+   "seconds": 3.26,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:answer"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
    ]
   },
   {
@@ -587,12 +591,13 @@
    "answer": "19851",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 151.5,
-   "cost": 172.9,
-   "calls": 1,
-   "seconds": 1.32,
+   "estimate": 153.7,
+   "cost": 393.6,
+   "calls": 2,
+   "seconds": 4.63,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:answer"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
    ]
   },
   {
@@ -619,12 +624,13 @@
    "answer": "5716",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 151.2,
-   "cost": 169.5,
-   "calls": 1,
-   "seconds": 1.92,
+   "estimate": 153.4,
+   "cost": 366.8,
+   "calls": 2,
+   "seconds": 6.0,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:answer"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
    ]
   },
   {
@@ -651,12 +657,13 @@
    "answer": "0",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 150.5,
-   "cost": 135.5,
-   "calls": 1,
-   "seconds": 1.44,
+   "estimate": 152.7,
+   "cost": 359.8,
+   "calls": 2,
+   "seconds": 3.26,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:answer"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
    ]
   },
   {
@@ -747,12 +754,13 @@
    "answer": "6174",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 151.2,
-   "cost": 145.9,
-   "calls": 1,
-   "seconds": 1.16,
+   "estimate": 153.4,
+   "cost": 378.6,
+   "calls": 2,
+   "seconds": 4.42,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:answer"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
    ]
   },
   {
@@ -795,12 +803,13 @@
    "answer": "20935",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 151.3,
-   "cost": 151.7,
-   "calls": 1,
-   "seconds": 1.12,
+   "estimate": 153.5,
+   "cost": 370.2,
+   "calls": 2,
+   "seconds": 3.7800000000000002,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:answer"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
    ]
   },
   {
@@ -811,12 +820,13 @@
    "answer": "4408",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 151.3,
-   "cost": 173.0,
-   "calls": 1,
-   "seconds": 1.55,
+   "estimate": 153.5,
+   "cost": 370.8,
+   "calls": 2,
+   "seconds": 5.37,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:answer"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:answer"
    ]
   },
   {
@@ -843,10 +853,10 @@
    "answer": "-336",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 141.9,
-   "cost": 487.8,
+   "estimate": 144.1,
+   "cost": 349.2,
    "calls": 2,
-   "seconds": 6.16,
+   "seconds": 3.54,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer",
     "verify:qwen3.8-27b:infeasible"
@@ -856,33 +866,34 @@
    "id": "math_9008",
    "type": "math",
    "reward": 7.0,
-   "status": "infeasible",
-   "answer": "",
-   "source": "pass2:qwen3.8-27b",
-   "reason": "script: The starting number of boxes is unknown, so the final number cannot be determined.",
-   "estimate": 141.9,
-   "cost": 415.8,
+   "status": "answered",
+   "answer": "-140",
+   "source": "pass1:qwen3.8-27b-noreason",
+   "reason": "",
+   "estimate": 144.1,
+   "cost": 426.2,
    "calls": 2,
-   "seconds": 4.15,
+   "seconds": 4.87,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:infeasible",
-    "pass2:qwen3.8-27b:infeasible"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:infeasible"
    ]
   },
   {
    "id": "math_9012",
    "type": "math",
    "reward": 1.0,
-   "status": "infeasible",
-   "answer": "",
+   "status": "answered",
+   "answer": "-150",
    "source": "pass1:qwen3.8-27b-noreason",
-   "reason": "script: ",
-   "estimate": 141.9,
-   "cost": 90.2,
-   "calls": 1,
-   "seconds": 2.03,
+   "reason": "",
+   "estimate": 144.1,
+   "cost": 370.2,
+   "calls": 2,
+   "seconds": 4.95,
    "attempts": [
-    "pass1:qwen3.8-27b-noreason:infeasible"
+    "pass1:qwen3.8-27b-noreason:answer",
+    "verify:qwen3.8-27b:infeasible"
    ]
   },
   {
@@ -941,10 +952,10 @@
    "answer": "48",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 141.9,
-   "cost": 563.8,
+   "estimate": 144.1,
+   "cost": 521.2,
    "calls": 2,
-   "seconds": 8.05,
+   "seconds": 41.74,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer",
     "verify:qwen3.8-27b:infeasible"
@@ -974,10 +985,10 @@
    "answer": "1948",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 143.7,
-   "cost": 365.6,
+   "estimate": 145.9,
+   "cost": 384.0,
    "calls": 2,
-   "seconds": 4.53,
+   "seconds": 5.13,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer",
     "verify:qwen3.8-27b:answer"
@@ -991,10 +1002,10 @@
    "answer": "2562",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 143.7,
-   "cost": 356.6,
+   "estimate": 145.9,
+   "cost": 384.0,
    "calls": 2,
-   "seconds": 6.42,
+   "seconds": 4.0,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer",
     "verify:qwen3.8-27b:answer"
@@ -1008,10 +1019,10 @@
    "answer": "-129",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 141.9,
-   "cost": 574.8,
+   "estimate": 144.1,
+   "cost": 418.2,
    "calls": 2,
-   "seconds": 5.85,
+   "seconds": 4.74,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer",
     "verify:qwen3.8-27b:infeasible"
@@ -1025,10 +1036,10 @@
    "answer": "1821",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 143.7,
-   "cost": 382.6,
+   "estimate": 145.9,
+   "cost": 388.0,
    "calls": 2,
-   "seconds": 3.9200000000000004,
+   "seconds": 3.88,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer",
     "verify:qwen3.8-27b:answer"
@@ -1061,7 +1072,7 @@
    "estimate": 0.0,
    "cost": 0.0,
    "calls": 0,
-   "seconds": 0.01,
+   "seconds": 0.0,
    "attempts": [
     "fastpath:answer"
    ]
@@ -1074,10 +1085,10 @@
    "answer": "-98",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 141.9,
-   "cost": 482.8,
+   "estimate": 144.1,
+   "cost": 470.2,
    "calls": 2,
-   "seconds": 6.07,
+   "seconds": 3.46,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer",
     "verify:qwen3.8-27b:infeasible"
@@ -1203,10 +1214,10 @@
    "answer": "2361",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 143.7,
-   "cost": 376.6,
+   "estimate": 145.9,
+   "cost": 390.0,
    "calls": 2,
-   "seconds": 6.8500000000000005,
+   "seconds": 11.02,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer",
     "verify:qwen3.8-27b:answer"
@@ -1220,10 +1231,10 @@
    "answer": "1587",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 143.7,
-   "cost": 361.6,
+   "estimate": 145.9,
+   "cost": 356.0,
    "calls": 2,
-   "seconds": 10.37,
+   "seconds": 3.95,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer",
     "verify:qwen3.8-27b:answer"
@@ -1237,10 +1248,10 @@
    "answer": "1952",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 180.0,
-   "cost": 631.9,
+   "estimate": 182.3,
+   "cost": 194.6,
    "calls": 1,
-   "seconds": 4.27,
+   "seconds": 1.58,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -1301,10 +1312,10 @@
    "answer": "1953",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 179.4,
-   "cost": 165.5,
+   "estimate": 181.7,
+   "cost": 168.2,
    "calls": 1,
-   "seconds": 1.21,
+   "seconds": 1.44,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -1381,10 +1392,10 @@
    "answer": "1992",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 179.7,
-   "cost": 183.4,
+   "estimate": 182.0,
+   "cost": 522.1,
    "calls": 1,
-   "seconds": 1.98,
+   "seconds": 5.72,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -1397,10 +1408,10 @@
    "answer": "1989",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 179.6,
-   "cost": 173.9,
+   "estimate": 181.9,
+   "cost": 167.6,
    "calls": 1,
-   "seconds": 1.42,
+   "seconds": 0.96,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -1493,10 +1504,10 @@
    "answer": "2016",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 179.6,
-   "cost": 411.4,
+   "estimate": 181.9,
+   "cost": 167.1,
    "calls": 1,
-   "seconds": 3.76,
+   "seconds": 0.95,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -1557,10 +1568,10 @@
    "answer": "1993",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 179.5,
-   "cost": 163.7,
+   "estimate": 181.8,
+   "cost": 166.4,
    "calls": 1,
-   "seconds": 1.47,
+   "seconds": 1.59,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]
@@ -1589,10 +1600,10 @@
    "answer": "1986",
    "source": "pass1:qwen3.8-27b-noreason",
    "reason": "",
-   "estimate": 179.6,
-   "cost": 190.2,
+   "estimate": 181.9,
+   "cost": 192.9,
    "calls": 1,
-   "seconds": 1.22,
+   "seconds": 1.55,
    "attempts": [
     "pass1:qwen3.8-27b-noreason:answer"
    ]

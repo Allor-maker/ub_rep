@@ -20,6 +20,7 @@ from .common import (
     UNSOLVABLE,
     SolveResult,
     extract_code,
+    format_problem,
     last_line,
     normalize_answer,
     says_unsolvable,
@@ -104,9 +105,13 @@ async def solve(
             answer = normalize_answer(last_line(result.stdout), task.check)
             if result.ok and answer == UNSOLVABLE:
                 return SolveResult("infeasible", reason="script: " + result.stderr.strip()[-300:])
-            if result.ok and answer:
+            bad_format = format_problem(answer, task.check) if result.ok and answer else None
+            if result.ok and answer and not bad_format:
                 return SolveResult("answer", answer, code=code)
-            problem = "printed nothing" if result.ok else f"failed (exit {result.returncode})"
+            if bad_format:
+                problem = f"ran, but {bad_format}"
+            else:
+                problem = "printed nothing" if result.ok else f"failed (exit {result.returncode})"
             messages = messages + [
                 {"role": "assistant", "content": f"```python\n{code}\n```"},
                 {
