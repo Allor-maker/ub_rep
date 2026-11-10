@@ -1,0 +1,7 @@
+{
+ "task_id": "math_fraction",
+ "task_type": "math",
+ "reward": 5,
+ "check": "exact_str",
+ "instruction": "e2e-math-fraction: A box has 3 red and 2 blue balls. Draw 2 without replacement. Given that at least one is red, what is the probability that both are red? Reduced fraction. Answer with one exact integer unless otherwise specified."
+}

@@ -1,14 +1,23 @@
 name: CI
 
+# Every push and pull request: lint + unit tests, then the Docker image is built and checked the
+# way the organizers will run it (size, build time, official launch flags), and end-to-end
+# scenarios run against a scripted fake LLM (no API key, no tokens spent).
 "on":
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    name: lint + unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -22,14 +31,32 @@ jobs:
       - run: pip install httpx==0.28.1 ruff==0.8.6
       - run: ruff check src tools tests run_agent.py
       - run: PYTHONPATH=src:tests python -m unittest discover -s tests -t tests -v
+
   docker:
+    name: image + end-to-end
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: docker build -t astra:ci .
+
+      - name: Build (organizers' limit 1000 s)
+        run: |
+          start=$(date +%s)
+          docker build -t astra:ci .
+          took=$(( $(date +%s) - start ))
+          echo "build took ${took}s"
+          echo "### Build: ${took}s (limit 1000s)" >> "$GITHUB_STEP_SUMMARY"
+          test "$took" -lt 900 || { echo "::error::build took ${took}s, too close to the 1000s limit"; exit 1; }
+
+      - name: Image size (organizers' limit 4 GB)
+        run: |
+          bytes=$(docker image inspect astra:ci --format '{{.Size}}')
+          echo "image: $bytes bytes"
+          echo "### Image: $(( bytes / 1000000 )) MB (limit 4000 MB)" >> "$GITHUB_STEP_SUMMARY"
+          test "$bytes" -lt 4000000000 || { echo "::error::image is ${bytes} bytes, limit is 4 GB"; exit 1; }
+
       - name: Official launch flags, no LLM key (fast path only)
         run: |
           mkdir -p /tmp/tasks/math_1
@@ -39,3 +66,12 @@ jobs:
             --cap-drop ALL --security-opt no-new-privileges --pids-limit 512 --workdir /app \
             --entrypoint python astra:ci /app/run_agent.py --tasks-dir /data/tasks
           test "$(cat /tmp/tasks/math_1/answer.txt)" = "4"
+
+      - name: "End-to-end: all tasks solved"
+        run: tools/e2e.sh full astra:ci
+      - name: "End-to-end: budget runs out (emulated organizers' stop)"
+        run: tools/e2e.sh budget astra:ci
+      - name: "End-to-end: proxy rate-limits (429), parallelism must adapt"
+        run: tools/e2e.sh ratelimit astra:ci
+      - name: "End-to-end: proxy rejects everything (402)"
+        run: tools/e2e.sh dead astra:ci
