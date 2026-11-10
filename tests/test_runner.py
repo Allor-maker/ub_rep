@@ -73,9 +73,23 @@ class RunnerTests(unittest.TestCase):
 
     def test_known_budget_skips_unaffordable_tasks(self):
         fake = FakeLLM(handler)
-        summary = asyncio.run(build(self.root, fake, budget=10.0).run())
+        summary = asyncio.run(build(self.root, fake, budget=10.0, soft_budget=False).run())
         self.assertEqual(summary["answered"], 1)
         self.assertEqual(len(fake.requests), 0)
+
+    def test_soft_budget_still_tries_deferred_tasks(self):
+        # Our count says "no budget", but only the organizers stop the run: keep trying, cheapest first.
+        fake = FakeLLM(handler)
+        summary = asyncio.run(build(self.root, fake, budget=10.0).run())
+        self.assertEqual(summary["answered"], 3)
+        self.assertEqual(len(fake.requests), 2)
+
+    def test_emulated_external_stop_loses_the_reply_that_crosses_the_budget(self):
+        fake = FakeLLM(handler)
+        summary = asyncio.run(build(self.root, fake, budget=10.0, stop_at_budget=True).run())
+        self.assertEqual(summary["answered"], 1)  # only the free fast-path answer
+        self.assertEqual(len(fake.requests), 1)
+        self.assertIn("emulated external stop", summary["llm_disabled_reason"])
 
     def test_unsolvable_gets_second_opinion_then_stops(self):
         root = temp_root()

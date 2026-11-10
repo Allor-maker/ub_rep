@@ -34,7 +34,7 @@ class ConfigTests(unittest.TestCase):
     def test_official_launch_needs_nothing_but_tasks_dir(self):
         config = parse_config(["--tasks-dir", "/data/tasks", "--some-new-flag", "x"], environ={})
         self.assertEqual(config.tasks_dir, Path("/data/tasks"))
-        self.assertIsNone(config.budget)
+        self.assertEqual(config.budget, 100_000.0)
         self.assertFalse(config.llm_enabled)
 
     def test_env_overrides(self):
@@ -256,6 +256,77 @@ class HelperTests(unittest.TestCase):
         preview = build_preview(task_dir / "workspace")
         self.assertIn("2019 summit host city", preview)
         self.assertIn("product={gizmo, widget}", preview)
+
+
+class LedgerTests(unittest.TestCase):
+    def test_failed_requests_are_billed_for_their_input(self):
+        import httpx
+
+        from nsu_budget_agent.llm import Ledger, LLMClient
+
+        statuses = [503, 200]
+
+        def respond(request: httpx.Request) -> httpx.Response:
+            if statuses.pop(0) != 200:
+                return httpx.Response(503, headers={"retry-after": "0"}, json={"error": "busy"})
+            return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}],
+                                             "usage": {"prompt_tokens": 300, "completion_tokens": 20}})
+
+        async def call():
+            ledger = Ledger(budget=1000)
+            client = LLMClient("http://proxy/v1", "k", ledger=ledger, transport=httpx.MockTransport(respond))
+            try:
+                await client.chat("t1", "qwen3.8-27b-noreason", [{"role": "user", "content": "x" * 3000}])
+            finally:
+                await client.aclose()
+            return ledger
+
+        ledger = asyncio.run(call())
+        self.assertEqual((ledger.calls, ledger.failed_calls), (1, 1))
+        failed = ledger.spent - (300 / 10 + 20)
+        self.assertGreater(failed, 90)  # ~3000 chars of prompt -> ~1000 tokens -> ~100 billed
+        self.assertAlmostEqual(ledger.per_task["t1"], ledger.spent)
+
+
+
+class PlannerTests(unittest.TestCase):
+    def test_calibrator_learns_per_type_and_is_shrunk(self):
+        from nsu_budget_agent.planner import Calibrator
+
+        cal = Calibrator()
+        self.assertEqual(cal.factor("search"), 1.0)
+        cal.observe("search", 100, 400)  # one task 4x the estimate: factor moves, but not to 4
+        self.assertTrue(1.2 < cal.factor("search") < 1.6)
+        for _ in range(30):
+            cal.observe("search", 100, 400)
+        self.assertTrue(3.3 < cal.factor("search") < 4.0)
+        self.assertEqual(cal.factor("math"), 1.0)
+        self.assertEqual(Calibrator(enabled=False).factor("search"), 1.0)
+
+
+class AdaptiveLimitTests(unittest.TestCase):
+    def test_limit_shrinks_on_429_and_bounds_parallelism(self):
+        from nsu_budget_agent.llm import AdaptiveLimit
+
+        async def scenario():
+            limit = AdaptiveLimit(4)
+            limit.on_rate_limited(4)
+            limit.on_rate_limited(4)  # same burst: lowers the ceiling once
+            limit.on_rate_limited(3)
+            peak = 0
+
+            async def job():
+                nonlocal peak
+                async with limit:
+                    peak = max(peak, limit.active)
+                    await asyncio.sleep(0.01)
+
+            await asyncio.gather(*(job() for _ in range(10)))
+            for _ in range(AdaptiveLimit.GROW_AFTER):
+                limit.on_success()
+            return peak, limit.limit, limit.rate_limited
+
+        self.assertEqual(asyncio.run(scenario()), (2, 2, 3))  # never probes upwards again
 
 
 if __name__ == "__main__":
