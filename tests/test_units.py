@@ -11,7 +11,7 @@ from nsu_budget_agent.context import build_preview
 from nsu_budget_agent.publish import Publisher
 from nsu_budget_agent.sandbox import make_sandbox, remove_sandbox, run_python
 from nsu_budget_agent.solvers import fastpath
-from nsu_budget_agent.solvers.coding import answer_word, is_test_file, test_command
+from nsu_budget_agent.solvers.coding import answer_word, declares_unsolvable, is_test_file, test_command
 from nsu_budget_agent.solvers.common import extract_code, normalize_answer
 from nsu_budget_agent.tasks import load_tasks
 
@@ -34,7 +34,7 @@ class ConfigTests(unittest.TestCase):
     def test_official_launch_needs_nothing_but_tasks_dir(self):
         config = parse_config(["--tasks-dir", "/data/tasks", "--some-new-flag", "x"], environ={})
         self.assertEqual(config.tasks_dir, Path("/data/tasks"))
-        self.assertIsNone(config.budget)
+        self.assertEqual(config.budget, 100_000.0)
         self.assertFalse(config.llm_enabled)
 
     def test_env_overrides(self):
@@ -195,6 +195,17 @@ class SandboxTests(unittest.TestCase):
         remove_sandbox(box)
         self.assertEqual(result.stdout.split("\n")[:4], ["Y-1", "['Ann']", "1 Ann", "hint"], result.stderr)
 
+    def test_agentlib_reads_bare_pipe_tables(self):
+        root = temp_root()
+        files = {"registry.md": "# Register\nScope: x.\nref | owner | team | rank\nB695 | Tomas Vega | amber | 5\n"
+                                "E601 | Pavel Adler | cobalt | 1\n\nNote: a | b is not a table.\n"}
+        task_dir = make_task(root, "s", "x", files=files)
+        box = make_sandbox(task_dir, task_dir / "workspace")
+        code = "from agentlib import tables\nt = tables('registry.md')\nprint(len(t), [r['team'] for r in t if r['ref'] == 'E601'], t[0]['rank'])"
+        result = asyncio.run(run_python(code, box, timeout=10))
+        remove_sandbox(box)
+        self.assertEqual(result.stdout.strip(), "2 ['cobalt'] 5", result.stderr)
+
     def test_timeout_and_agentlib(self):
         root = temp_root()
         task_dir = make_task(root, "s", "x", files=KB)
@@ -231,6 +242,13 @@ class HelperTests(unittest.TestCase):
         self.assertIsNone(format_problem("Osaka", "exact_str"))
         self.assertIsNotNone(format_problem("Sample row: {'a': 1}", "exact_int"))
         self.assertIsNotNone(format_problem("x" * 300, "exact_str"))
+        frac = "Probability of NO faulty sensors? Reduced fraction. Answer with one exact integer unless otherwise specified."
+        self.assertIsNotNone(format_problem("429", "exact_str", frac))
+        self.assertIsNone(format_problem("429/5168", "exact_str", frac))
+        money = "Round final amount HALF_UP to two decimals. Answer with one exact integer unless otherwise specified."
+        self.assertIsNotNone(format_problem("744", "exact_str", money))
+        self.assertIsNone(format_problem("744.98", "exact_str", money))
+        self.assertIsNone(format_problem("42", "exact_str", "How many boxes? Answer with one exact integer."))
 
     def test_extract_code(self):
         self.assertEqual(extract_code("text\n```python\nprint(1)\n```\n"), "print(1)\n")
@@ -249,6 +267,12 @@ class HelperTests(unittest.TestCase):
         evil = [t for t in load_tasks(root) if t.id == "c2"][0]
         self.assertIn("unittest", test_command(evil, root))
 
+    def test_unsolvable_as_answer_file_block(self):
+        self.assertTrue(declares_unsolvable("UNSOLVABLE"))
+        self.assertTrue(declares_unsolvable("\n\n### FILE: answer.txt\n```\nUNSOLVABLE\n```"))
+        self.assertTrue(declares_unsolvable("### FILE: mylib.py\n```python\nx = 1\n```\n### FILE: answer.txt\n```\nUNSOLVABLE\n```"))
+        self.assertFalse(declares_unsolvable("### FILE: mylib.py\n```python\nprint('UNSOLVABLE')\n```"))
+
     def test_preview_lists_kb_keys_and_csv_values(self):
         root = temp_root()
         task_dir = make_task(root, "s", "x", files={**KB, "kb/person_a.md": "# A\n2019 summit host city: Graz\n",
@@ -256,6 +280,100 @@ class HelperTests(unittest.TestCase):
         preview = build_preview(task_dir / "workspace")
         self.assertIn("2019 summit host city", preview)
         self.assertIn("product={gizmo, widget}", preview)
+
+
+class LedgerTests(unittest.TestCase):
+    def test_failed_requests_are_billed_for_their_input(self):
+        import httpx
+
+        from nsu_budget_agent.llm import Ledger, LLMClient
+
+        statuses = [503, 200]
+
+        def respond(request: httpx.Request) -> httpx.Response:
+            if statuses.pop(0) != 200:
+                return httpx.Response(503, headers={"retry-after": "0"}, json={"error": "busy"})
+            return httpx.Response(200, json={"choices": [{"message": {"content": "ok"}, "finish_reason": "stop"}],
+                                             "usage": {"prompt_tokens": 300, "completion_tokens": 20}})
+
+        async def call():
+            ledger = Ledger(budget=1000)
+            client = LLMClient("http://proxy/v1", "k", ledger=ledger, transport=httpx.MockTransport(respond))
+            try:
+                await client.chat("t1", "qwen3.8-27b-noreason", [{"role": "user", "content": "x" * 3000}])
+            finally:
+                await client.aclose()
+            return ledger
+
+        ledger = asyncio.run(call())
+        self.assertEqual((ledger.calls, ledger.failed_calls), (1, 1))
+        failed = ledger.spent - (300 / 10 + 20)
+        self.assertGreater(failed, 90)  # ~3000 chars of prompt -> ~1000 tokens -> ~100 billed
+        self.assertAlmostEqual(ledger.per_task["t1"], ledger.spent)
+
+
+    def test_long_rate_limit_window_stops_llm_without_retries(self):
+        import httpx
+
+        from nsu_budget_agent.llm import Ledger, LLMClient, LLMUnavailable
+
+        sent = []
+
+        def respond(request: httpx.Request) -> httpx.Response:
+            sent.append(1)
+            return httpx.Response(429, headers={"x-window": "session", "retry-after": "7200"},
+                                  json={"error": {"message": "Лимит запросов тарифа на 3 часа исчерпан", "code": "429"}})
+
+        async def call():
+            client = LLMClient("http://proxy/v1", "k", ledger=Ledger(), transport=httpx.MockTransport(respond))
+            try:
+                await client.chat("t1", "qwen3.8-27b-noreason", [{"role": "user", "content": "x"}])
+            finally:
+                await client.aclose()
+
+        with self.assertRaises(LLMUnavailable):
+            asyncio.run(call())
+        self.assertEqual(len(sent), 1)
+
+
+class PlannerTests(unittest.TestCase):
+    def test_calibrator_learns_per_type_and_is_shrunk(self):
+        from nsu_budget_agent.planner import Calibrator
+
+        cal = Calibrator()
+        self.assertEqual(cal.factor("search"), 1.0)
+        cal.observe("search", 100, 400)  # one task 4x the estimate: factor moves, but not to 4
+        self.assertTrue(1.2 < cal.factor("search") < 1.6)
+        for _ in range(30):
+            cal.observe("search", 100, 400)
+        self.assertTrue(3.3 < cal.factor("search") < 4.0)
+        self.assertEqual(cal.factor("math"), 1.0)
+        self.assertEqual(Calibrator(enabled=False).factor("search"), 1.0)
+
+
+class AdaptiveLimitTests(unittest.TestCase):
+    def test_limit_shrinks_on_429_and_bounds_parallelism(self):
+        from nsu_budget_agent.llm import AdaptiveLimit
+
+        async def scenario():
+            limit = AdaptiveLimit(4)
+            limit.on_rate_limited(4)
+            limit.on_rate_limited(4)  # same burst: lowers the ceiling once
+            limit.on_rate_limited(3)
+            peak = 0
+
+            async def job():
+                nonlocal peak
+                async with limit:
+                    peak = max(peak, limit.active)
+                    await asyncio.sleep(0.01)
+
+            await asyncio.gather(*(job() for _ in range(10)))
+            for _ in range(AdaptiveLimit.GROW_AFTER):
+                limit.on_success()
+            return peak, limit.limit, limit.rate_limited
+
+        self.assertEqual(asyncio.run(scenario()), (2, 2, 3))  # never probes upwards again
 
 
 if __name__ == "__main__":

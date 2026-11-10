@@ -58,8 +58,10 @@ class Runner:
                 max_parallel=config.concurrency,
                 deadline=self.deadline - 20,
                 transport=transport,
+                stop_at_budget=config.stop_at_budget,
             )
         self.publisher = Publisher(config.out)
+        self.calibrator = planner.Calibrator(enabled=config.calibrate)
         self.records: dict[str, Record] = {}
         self.traces: dict[str, Trace] = {}
         self.engines: dict[str, int] = {}
@@ -270,27 +272,65 @@ class Runner:
 
         await self._phase("verify", task, solve_step, finish)
 
-    async def _pool(self, tasks: list[Task], fn) -> None:
-        queue: asyncio.Queue[Task] = asyncio.Queue()
-        for task in tasks:
-            queue.put_nowait(task)
+    def _calibrated(self, task: Task) -> float:
+        return self.records[task.id].estimate * self.calibrator.factor(task.type)
+
+    def _budget_left(self) -> bool:
+        return self.ledger.remaining is None or self.ledger.remaining > 0
+
+    async def _pool(self, tasks: list[Task], fn, *, first_pass: bool = False) -> None:
+        """Run fn over tasks with `concurrency` workers.
+
+        first_pass: before every pick the queue is re-ranked by reward / calibrated estimate, and
+        each finished task updates the calibration of its type. A task whose estimate does not fit
+        the remaining budget is deferred (soft budget) and tried, cheapest first, after the
+        affordable ones; without soft budget (and in later passes) it is skipped."""
+        pending = list(tasks)
+        deferred: list[Task] = []
+        overflow = False
+
+        def pick() -> Task:
+            if not first_pass or overflow:
+                return pending.pop(0)
+            best = max(range(len(pending)), key=lambda i: pending[i].reward / max(self._calibrated(pending[i]), 1.0))
+            return pending.pop(best)
 
         async def worker() -> None:
-            while not queue.empty():
+            nonlocal overflow
+            while True:
                 if self._time_left() < 45 or (self.llm is not None and not self.llm.available):
                     return
-                task = queue.get_nowait()
+                if not pending:
+                    if first_pass and deferred and not overflow and self.config.soft_budget:
+                        overflow = True
+                        pending.extend(sorted(deferred, key=self._calibrated))
+                        deferred.clear()
+                        self._log(f"over our own budget count: trying {len(pending)} deferred tasks, cheapest first")
+                        continue
+                    return
+                task = pick()
                 record = self.records[task.id]
-                if not self.ledger.can_afford(record.estimate):
-                    if record.status != "answered":  # never downgrade an answer we already have
+                estimate = self._calibrated(task) if first_pass else record.estimate
+                if not overflow and not self.ledger.can_afford(estimate):
+                    if first_pass and self.config.soft_budget:
+                        deferred.append(task)
+                    elif record.status != "answered":  # never downgrade an answer we already have
                         record.status, record.reason = "skipped", "estimated cost exceeds remaining budget"
                     continue
+                trace = self.traces[task.id]
+                cost_before, calls_before = trace.cost, trace.calls
                 try:
                     await fn(task)
                 except Exception as exc:  # noqa: BLE001 - one task never stops the run
                     self._log(f"{task.id}: unexpected {type(exc).__name__}: {exc}")
+                if first_pass and trace.calls > calls_before:
+                    self.calibrator.observe(task.type, record.estimate, trace.cost - cost_before)
 
         await asyncio.gather(*(worker() for _ in range(self.config.concurrency)))
+        for task in pending + deferred:  # never started (time, budget or LLM gone)
+            record = self.records[task.id]
+            if record.status == "pending":
+                record.status, record.reason = "skipped", "not started: budget, time or LLM exhausted"
 
     # ------------------------------------------------------------------ main
     async def run(self) -> dict:
@@ -334,18 +374,22 @@ class Runner:
                 await self._pool(
                     first,
                     lambda t: self._attempt(t, self.config.model, "pass1", self.config.max_repairs),
+                    first_pass=True,
                 )
+                if self.config.calibrate:
+                    self._log(f"cost calibration (actual/estimate by type): {self.calibrator.snapshot()}")
+                # Second opinions and verification only spend what the first pass left over.
                 second_model = self.config.second_model or self.config.model
                 retry = [t for t in tasks if self._wants_second_opinion(t)]
                 retry.sort(key=lambda t: -t.reward)
-                if self.config.second_pass and retry and self.llm.available:
+                if self.config.second_pass and retry and self.llm.available and self._budget_left():
                     self._log(f"second pass: {len(retry)} tasks with {second_model}")
                     await self._pool(
                         retry, lambda t: self._attempt(t, second_model, "pass2", self.config.max_repairs)
                     )
                 verify = [t for t in tasks if self._wants_verification(t)]
                 verify.sort(key=lambda t: -t.reward)
-                if verify and self.llm.available and second_model != self.config.model:
+                if verify and self.llm.available and second_model != self.config.model and self._budget_left():
                     self._log(f"verification: {len(verify)} answers with {second_model}")
                     await self._pool(verify, lambda t: self._verify(t, second_model))
         finally:
@@ -366,6 +410,11 @@ class Runner:
             "reward_answered": sum(r.reward for r in records if r.status == "answered"),
             "tokens_spent": round(self.ledger.spent, 1),
             "llm_calls": self.ledger.calls,
+            "llm_failed_calls": self.ledger.failed_calls,
+            "llm_rate_limited": self.llm.parallel.rate_limited if self.llm else 0,
+            "llm_parallel_final": self.llm.parallel.limit if self.llm else 0,
+            "llm_server_full": self.llm.server_full if self.llm else 0,
+            "cost_calibration": self.calibrator.snapshot(),
             "llm_disabled_reason": self.llm.dead_reason if self.llm else "no LLM_API_KEY/LLM_BASE_URL",
             "estimated_tokens": round(sum(r.estimate for r in records), 1),
             "engines": self.engines,

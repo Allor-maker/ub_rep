@@ -1,0 +1,7 @@
+{
+ "task_id": "coding_fix",
+ "task_type": "coding",
+ "reward": 4,
+ "check": "unittest",
+ "instruction": "e2e-coding-fix: Run `python3 test_mylib.py` in the current directory; some tests fail. Fix the bugs in mylib.py (do not edit the tests) until all tests pass. When you are done, write ONLY the word DONE to the file answer.txt."
+}

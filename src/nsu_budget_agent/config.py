@@ -22,6 +22,9 @@ MODELS = (
 # Chosen on 130 graded tasks (see README "Модели"): cheapest model with ~98-100% accuracy.
 DEFAULT_MODEL = "qwen3.8-27b-noreason"
 DEFAULT_SECOND_MODEL = "qwen3.8-27b"  # reasoning: strongest, best at spotting infeasible tasks
+# Organizers (meeting 2026-11-10): the budget is 100000 competition tokens; the proxy does not
+# enforce it, the run is stopped from outside once it is spent. BUDGET env overrides it.
+DEFAULT_BUDGET = 100_000.0
 
 
 def is_reasoning(model: str) -> bool:
@@ -60,8 +63,8 @@ class Config:
     model: str = DEFAULT_MODEL
     # Second opinion for tasks the main model failed (second pass, only if budget remains).
     second_model: str | None = DEFAULT_SECOND_MODEL
-    budget: float | None = None  # competition tokens; None = unknown (the proxy enforces it)
-    concurrency: int = 4
+    budget: float | None = DEFAULT_BUDGET  # competition tokens; None = no limit (dev runs only)
+    concurrency: int = 2  # NeuralDeep allows 3, but rejected 1 of 64 at 3; every 429 is billed
     deadline_s: float = 3300.0
     llm_timeout_s: float = 120.0
     max_repairs: int = 1
@@ -77,6 +80,14 @@ class Config:
     # disagreements). Maths: a wrong formula runs without any error. Data: a missed filter
     # condition (e.g. counting refunds as purchases) runs without any error too.
     verify_types: tuple[str, ...] = ("math", "data_analysis")
+    # Correct the a-priori cost estimates online, per task type, from tasks already solved.
+    calibrate: bool = True
+    # Our own count is not the organizers' one, and being stopped by them costs nothing (what is
+    # written counts). So first-pass tasks that do not fit our count are deferred, not dropped,
+    # and tried cheapest first once the affordable ones are done.
+    soft_budget: bool = True
+    # Dev only: emulate the organizers' stop (no request and no answer after the budget is spent).
+    stop_at_budget: bool = False
     extra: dict = field(default_factory=dict)
 
     @property
@@ -100,7 +111,7 @@ def parse_config(argv: list[str] | None = None, environ: dict | None = None) -> 
     out = args.out or env.get("OUT") or None
     log_dir = args.log_dir or env.get("AGENT_LOG_DIR") or None
     model = args.model if args.model in MODELS else _model(env, "AGENT_MODEL", DEFAULT_MODEL)
-    concurrency = args.concurrency or _env_int(env, "AGENT_CONCURRENCY", 4)
+    concurrency = args.concurrency or _env_int(env, "AGENT_CONCURRENCY", 2)
     deadline = args.deadline_s or _env_float(env, "AGENT_DEADLINE_S", 3300.0)
     return Config(
         tasks_dir=Path(tasks or "/data/tasks"),
@@ -109,7 +120,7 @@ def parse_config(argv: list[str] | None = None, environ: dict | None = None) -> 
         api_key=(env.get("LLM_API_KEY") or "").strip() or None,
         model=model or DEFAULT_MODEL,
         second_model=_model(env, "AGENT_SECOND_MODEL", DEFAULT_SECOND_MODEL),
-        budget=_env_float(env, "BUDGET", None),
+        budget=_env_float(env, "BUDGET", DEFAULT_BUDGET),
         concurrency=max(1, min(int(concurrency), 16)),
         deadline_s=max(30.0, min(float(deadline or 3300.0), 3550.0)),
         llm_timeout_s=_env_float(env, "AGENT_LLM_TIMEOUT_S", 120.0) or 120.0,
@@ -117,6 +128,9 @@ def parse_config(argv: list[str] | None = None, environ: dict | None = None) -> 
         second_pass=env.get("AGENT_SECOND_PASS", "1") != "0",
         reward_aware=env.get("AGENT_REWARD_AWARE", "1") != "0",
         verify_top=max(0.0, min(1.0, _env_float(env, "AGENT_VERIFY_TOP", 0.0) or 0.0)),
+        calibrate=env.get("AGENT_CALIBRATE", "1") != "0",
+        soft_budget=env.get("AGENT_SOFT_BUDGET", "1") != "0",
+        stop_at_budget=env.get("AGENT_STOP_AT_BUDGET", "0") == "1",
         verify_types=tuple(
             t.strip().lower()
             for t in env.get("AGENT_VERIFY_TYPES", "math,data_analysis").split(",")

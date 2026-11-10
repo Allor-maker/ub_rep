@@ -1,14 +1,25 @@
 name: CI
 
+# Every push and pull request: lint + unit tests, then the Docker image is built and checked the
+# way the organizers will run it (size, build time, official launch flags), and end-to-end
+# scenarios run against a scripted fake LLM (no API key, no tokens spent).
 "on":
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
+    name: lint + unit tests
+    outputs:
+      tests: ${{ steps.unit.outputs.summary }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -21,16 +32,61 @@ jobs:
       # Unit tests need only httpx; without openJiuwen the phases run directly (same code path).
       - run: pip install httpx==0.28.1 ruff==0.8.6
       - run: ruff check src tools tests run_agent.py
-      - run: PYTHONPATH=src:tests python -m unittest discover -s tests -t tests -v
+      - id: unit
+        run: |
+          set +e
+          PYTHONPATH=src:tests python -m unittest discover -s tests -t tests -v 2>&1 | tee unit.log
+          rc=${PIPESTATUS[0]}
+          echo "summary=$(grep -E '^Ran [0-9]+ tests' unit.log) $(tail -n 1 unit.log)" >> "$GITHUB_OUTPUT"
+          exit $rc
+
   docker:
+    name: image + end-to-end
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
+    outputs:
+      build: ${{ steps.build.outputs.took }}
+      size: ${{ steps.size.outputs.shown }}
+      unpacked: ${{ steps.size.outputs.unpacked }}
+      official: ${{ steps.official.outcome }}
+      full: ${{ steps.e2e_full.outcome }}|${{ steps.e2e_full.outputs.line }}
+      budget: ${{ steps.e2e_budget.outcome }}|${{ steps.e2e_budget.outputs.line }}
+      ratelimit: ${{ steps.e2e_ratelimit.outcome }}|${{ steps.e2e_ratelimit.outputs.line }}
+      dead: ${{ steps.e2e_dead.outcome }}|${{ steps.e2e_dead.outputs.line }}
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - run: docker build -t astra:ci .
+
+      - name: Build (organizers' limit 1000 s)
+        id: build
+        run: |
+          start=$(date +%s)
+          docker build -t astra:ci .
+          took=$(( $(date +%s) - start ))
+          echo "build took ${took}s"
+          echo "took=${took}" >> "$GITHUB_OUTPUT"
+          echo "### Build: ${took}s (limit 1000s)" >> "$GITHUB_STEP_SUMMARY"
+          test "$took" -lt 900 || { echo "::error::build took ${took}s, too close to the 1000s limit"; exit 1; }
+
+      - name: Image size (organizers' limit 4 GB, measured like them with docker images)
+        id: size
+        run: |
+          shown=$(docker images astra:ci --format '{{.Size}}')
+          # docker images prints e.g. 1.03GB / 950MB; with the containerd image store it can show a
+          # compressed size, so the unpacked file system (du inside the image) is checked as well.
+          shown_bytes=$(python3 -c "import re,sys; v,u=re.fullmatch(r'([\d.]+)\s*([kMG]?B)', sys.argv[1]).groups(); print(int(float(v)*{'B':1,'kB':1e3,'MB':1e6,'GB':1e9}[u]))" "$shown")
+          unpacked_bytes=$(docker run --rm --entrypoint sh astra:ci -c 'du -sxb / 2>/dev/null | cut -f1')
+          echo "docker images: $shown; unpacked: $unpacked_bytes bytes"
+          echo "shown=${shown}" >> "$GITHUB_OUTPUT"
+          echo "unpacked=$(( unpacked_bytes / 1000000 )) MB" >> "$GITHUB_OUTPUT"
+          echo "### Image: docker images $shown, unpacked $(( unpacked_bytes / 1000000 )) MB (limit 4 GB)" >> "$GITHUB_STEP_SUMMARY"
+          for b in "$shown_bytes" "$unpacked_bytes"; do
+            test "$b" -lt 4000000000 || { echo "::error::image is ${b} bytes, limit is 4 GB"; exit 1; }
+          done
+
       - name: Official launch flags, no LLM key (fast path only)
+        id: official
         run: |
           mkdir -p /tmp/tasks/math_1
           echo '{"task_id":"math_1","task_type":"math","reward":1,"instruction":"A warehouse starts with 10 boxes. It ships 2 boxes per day for 3 days. How many boxes does it have at the end?"}' > /tmp/tasks/math_1/task.json
@@ -39,3 +95,109 @@ jobs:
             --cap-drop ALL --security-opt no-new-privileges --pids-limit 512 --workdir /app \
             --entrypoint python astra:ci /app/run_agent.py --tasks-dir /data/tasks
           test "$(cat /tmp/tasks/math_1/answer.txt)" = "4"
+
+      - name: "End-to-end: all tasks solved"
+        id: e2e_full
+        # every scenario runs even if another one failed, so the report shows all of them
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set +e
+          tools/e2e.sh full astra:ci 2>&1 | tee e2e.log
+          rc=${PIPESTATUS[0]}
+          echo "line=$(grep -m1 '^scenario=' e2e.log | sed 's/^scenario=[a-z]* //') $(grep -m1 '^FAIL' e2e.log)" >> "$GITHUB_OUTPUT"
+          exit $rc
+      - name: "End-to-end: budget runs out (emulated organizers' stop)"
+        id: e2e_budget
+        # every scenario runs even if another one failed, so the report shows all of them
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set +e
+          tools/e2e.sh budget astra:ci 2>&1 | tee e2e.log
+          rc=${PIPESTATUS[0]}
+          echo "line=$(grep -m1 '^scenario=' e2e.log | sed 's/^scenario=[a-z]* //') $(grep -m1 '^FAIL' e2e.log)" >> "$GITHUB_OUTPUT"
+          exit $rc
+      - name: "End-to-end: proxy rate-limits (429), parallelism must adapt"
+        id: e2e_ratelimit
+        # every scenario runs even if another one failed, so the report shows all of them
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set +e
+          tools/e2e.sh ratelimit astra:ci 2>&1 | tee e2e.log
+          rc=${PIPESTATUS[0]}
+          echo "line=$(grep -m1 '^scenario=' e2e.log | sed 's/^scenario=[a-z]* //') $(grep -m1 '^FAIL' e2e.log)" >> "$GITHUB_OUTPUT"
+          exit $rc
+      - name: "End-to-end: proxy rejects everything (402)"
+        id: e2e_dead
+        # every scenario runs even if another one failed, so the report shows all of them
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: |
+          set +e
+          tools/e2e.sh dead astra:ci 2>&1 | tee e2e.log
+          rc=${PIPESTATUS[0]}
+          echo "line=$(grep -m1 '^scenario=' e2e.log | sed 's/^scenario=[a-z]* //') $(grep -m1 '^FAIL' e2e.log)" >> "$GITHUB_OUTPUT"
+          exit $rc
+
+  report:
+    name: PR report
+    needs: [test, docker]
+    # only for pull requests from this repository (a fork's token cannot comment)
+    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post or update the CI report comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          TEST_RESULT: ${{ needs.test.result }}
+          TESTS: ${{ needs.test.outputs.tests }}
+          DOCKER_RESULT: ${{ needs.docker.result }}
+          BUILD: ${{ needs.docker.outputs.build }}
+          SIZE: ${{ needs.docker.outputs.size }}
+          UNPACKED: ${{ needs.docker.outputs.unpacked }}
+          OFFICIAL: ${{ needs.docker.outputs.official }}
+          E2E_FULL: ${{ needs.docker.outputs.full }}
+          E2E_BUDGET: ${{ needs.docker.outputs.budget }}
+          E2E_RATELIMIT: ${{ needs.docker.outputs.ratelimit }}
+          E2E_DEAD: ${{ needs.docker.outputs.dead }}
+        run: |
+          python3 - <<'PY' > report.md
+          import os
+          e = os.environ
+          mark = lambda ok: "✅" if ok else "❌"
+          rows = [
+              ("Lint + unit tests", e["TEST_RESULT"] == "success", e.get("TESTS") or e["TEST_RESULT"]),
+              ("Build (limit 1000 s)", bool(e.get("BUILD")) and int(e["BUILD"]) < 900,
+               f"{e['BUILD']} s" if e.get("BUILD") else "not built"),
+              ("Image size (limit 4 GB)", bool(e.get("SIZE")),
+               f"docker images {e.get('SIZE') or '?'}, unpacked {e.get('UNPACKED') or '?'}"),
+              ("Official launch, no key", e.get("OFFICIAL") == "success", e.get("OFFICIAL") or "skipped"),
+          ]
+          for name, key in (("full", "E2E_FULL"), ("budget", "E2E_BUDGET"), ("ratelimit (429)", "E2E_RATELIMIT"),
+                            ("dead proxy (402)", "E2E_DEAD")):
+              outcome, _, line = (e.get(key) or "skipped|").partition("|")
+              rows.append((f"E2E: {name}", outcome == "success", line.strip() or outcome or "skipped"))
+          ok = all(r[1] for r in rows)
+          print("<!-- ci-report -->")
+          print(f"### CI {mark(ok)} for {e['SHA'][:7]}")
+          print()
+          print("| Check | | Result |")
+          print("| --- | --- | --- |")
+          for name, good, detail in rows:
+              print(f"| {name} | {mark(good)} | {detail.replace('|', '/')} |")
+          print()
+          print(f"[Full log]({e['RUN_URL']})")
+          PY
+          cat report.md
+          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+                 -q '.[] | select(.body | startswith("<!-- ci-report -->")) | .id' | tail -n 1)
+          if [ -n "$id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@report.md > /dev/null
+          else
+            gh pr comment "$PR" --repo "$REPO" --body-file report.md
+          fi

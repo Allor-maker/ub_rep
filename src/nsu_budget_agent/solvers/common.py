@@ -60,13 +60,31 @@ _FORMATS = {
 }
 
 
-def format_problem(answer: str, check: str) -> str | None:
-    """Why the answer cannot be valid for the task's declared check, or None if it can."""
+_ASKS_FRACTION = re.compile(r"\b(?:reduced\s+fraction|as\s+a\s+fraction|fraction\s+p/q|answer\s+p/q)\b", re.I)
+_ASKS_DECIMALS = re.compile(r"\b(\d|one|two|three|four)\s+decimal(?:s|\s+places?)?\b", re.I)
+_WORDS = {"one": 1, "two": 2, "three": 3, "four": 4}
+
+
+def format_problem(answer: str, check: str, instruction: str = "") -> str | None:
+    """Why the answer cannot be valid for the task's declared check or for the form the task text
+    explicitly asks for (a reduced fraction, N decimals), or None if it can.
+
+    The form check exists because a generic line like "Answer with one exact integer unless
+    otherwise specified" made the model print only the numerator of a requested fraction."""
     pattern = _FORMATS.get(check)
     if pattern is not None and not pattern.fullmatch(answer):
         return f"the task expects a {check.removeprefix('exact_')} number, but the script printed {answer[:80]!r}"
     if len(answer) > 200:
         return "the last printed line is too long to be a final answer (debug output?)"
+    if check != "exact_int" and instruction:
+        if _ASKS_FRACTION.search(instruction) and not re.fullmatch(r"-?\d+/\d+", answer):
+            return (f"the task asks for a reduced fraction p/q (e.g. 3/1000), but the script printed {answer[:80]!r} "
+                    "(if the exact value is a whole number, printing the integer is right)")
+        decimals = _ASKS_DECIMALS.search(instruction)
+        if decimals:
+            n = int(_WORDS.get(decimals.group(1).lower(), decimals.group(1)))
+            if not re.fullmatch(rf"-?\d+\.\d{{{n}}}", answer):
+                return f"the task asks for exactly {n} decimal places, but the script printed {answer[:80]!r}"
     return None
 
 

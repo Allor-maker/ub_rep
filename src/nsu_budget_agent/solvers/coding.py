@@ -54,6 +54,18 @@ def failing_tests(output: str) -> frozenset[str]:
     return frozenset(names)
 
 
+def declares_unsolvable(text: str) -> bool:
+    """Bare UNSOLVABLE, or UNSOLVABLE written as an answer.txt file block: the model often answers
+    in the file format it was given (seen on 15 of 16 infeasible coding tasks, each then paid
+    1-2 extra reasoning calls and was wrongly marked DONE)."""
+    if says_unsolvable(text):
+        return True
+    return any(
+        PurePosixPath(rel.strip().strip("`")).name == "answer.txt" and says_unsolvable(content)
+        for rel, content in _FILE_BLOCK.findall(text)
+    )
+
+
 def answer_word(instruction: str) -> str:
     m = re.search(r"write ONLY the word ['\"`]?([A-Za-z0-9_]+)", instruction)
     return m.group(1) if m else "DONE"
@@ -144,7 +156,7 @@ async def solve(
                 return SolveResult("failed", reason="per-task cost cap reached")
             reply = await llm.chat(task.id, model, messages, max_tokens=6000 if is_reasoning(model) else 2000)
             trace.llm("solve" if attempt == 0 else "repair", messages, reply)
-            if says_unsolvable(reply.text):
+            if declares_unsolvable(reply.text):
                 return SolveResult("infeasible", reason="model: UNSOLVABLE")
             blocks = _FILE_BLOCK.findall(reply.text)
             if mode == "review" and not blocks and reply.text.strip().strip("`*. ").upper() == "OK":
