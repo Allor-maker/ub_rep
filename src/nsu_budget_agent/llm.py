@@ -83,9 +83,13 @@ class AdaptiveLimit:
 
     GROW_AFTER = 20  # consecutive successes before one more parallel request is allowed
 
-    def __init__(self, maximum: int) -> None:
+    def __init__(self, maximum: int, release_delay: float = 0.0) -> None:
         self.maximum = max(1, maximum)
         self.limit = self.maximum
+        # The server frees a parallel slot a moment after the reply (measured 10.11: at 2 parallel
+        # requests NeuralDeep reported 0 of 3 slots free in 4 of 24 replies; at 3 - a 429). So our
+        # slot is released only release_delay seconds after the reply.
+        self.release_delay = release_delay
         self.active = 0
         self.rate_limited = 0
         self._streak = 0
@@ -103,6 +107,14 @@ class AdaptiveLimit:
             self.active += 1
 
     async def __aexit__(self, *exc) -> None:
+        if self.release_delay > 0:
+            asyncio.get_running_loop().create_task(self._release(self.release_delay))
+        else:
+            await self._release(0.0)
+
+    async def _release(self, delay: float) -> None:
+        if delay:
+            await asyncio.sleep(delay)
         cond = self._condition()
         async with cond:
             self.active -= 1
@@ -173,7 +185,8 @@ class LLMClient:
         self._client = httpx.AsyncClient(
             timeout=httpx.Timeout(timeout_s, connect=15.0), transport=transport
         )
-        self.parallel = AdaptiveLimit(max_parallel)
+        self.parallel = AdaptiveLimit(max_parallel, release_delay=0.5)
+        self.server_full = 0  # replies after which the server reported no free parallel slot
         self._pause_until = 0.0  # monotonic time before which no request is sent (Retry-After)
         self.stop_at_budget = stop_at_budget  # dev: emulate the organizers stopping the run
         self._consecutive_failures = 0
@@ -245,6 +258,8 @@ class LLMClient:
                     else:
                         self._consecutive_failures = 0
                         self.parallel.on_success()
+                        if response.headers.get("x-ratelimit-api_key-remaining-max_parallel_requests") == "0":
+                            self.server_full += 1
                         self.ledger.add(task_id, reply.cost)
                         if self.stop_at_budget and self.ledger.remaining is not None and self.ledger.remaining < 0:
                             raise self._die("budget spent (emulated external stop)")  # the reply is lost

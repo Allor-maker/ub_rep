@@ -11,7 +11,7 @@ from nsu_budget_agent.context import build_preview
 from nsu_budget_agent.publish import Publisher
 from nsu_budget_agent.sandbox import make_sandbox, remove_sandbox, run_python
 from nsu_budget_agent.solvers import fastpath
-from nsu_budget_agent.solvers.coding import answer_word, is_test_file, test_command
+from nsu_budget_agent.solvers.coding import answer_word, declares_unsolvable, is_test_file, test_command
 from nsu_budget_agent.solvers.common import extract_code, normalize_answer
 from nsu_budget_agent.tasks import load_tasks
 
@@ -248,6 +248,12 @@ class HelperTests(unittest.TestCase):
         make_task(root, "c2", "Run `python3 x.py; rm -rf /` now.", task_type="coding")
         evil = [t for t in load_tasks(root) if t.id == "c2"][0]
         self.assertIn("unittest", test_command(evil, root))
+
+    def test_unsolvable_as_answer_file_block(self):
+        self.assertTrue(declares_unsolvable("UNSOLVABLE"))
+        self.assertTrue(declares_unsolvable("\n\n### FILE: answer.txt\n```\nUNSOLVABLE\n```"))
+        self.assertTrue(declares_unsolvable("### FILE: mylib.py\n```python\nx = 1\n```\n### FILE: answer.txt\n```\nUNSOLVABLE\n```"))
+        self.assertFalse(declares_unsolvable("### FILE: mylib.py\n```python\nprint('UNSOLVABLE')\n```"))
 
     def test_preview_lists_kb_keys_and_csv_values(self):
         root = temp_root()

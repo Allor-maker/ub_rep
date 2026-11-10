@@ -413,6 +413,7 @@ class Runner:
             "llm_failed_calls": self.ledger.failed_calls,
             "llm_rate_limited": self.llm.parallel.rate_limited if self.llm else 0,
             "llm_parallel_final": self.llm.parallel.limit if self.llm else 0,
+            "llm_server_full": self.llm.server_full if self.llm else 0,
             "cost_calibration": self.calibrator.snapshot(),
             "llm_disabled_reason": self.llm.dead_reason if self.llm else "no LLM_API_KEY/LLM_BASE_URL",
             "estimated_tokens": round(sum(r.estimate for r in records), 1),
