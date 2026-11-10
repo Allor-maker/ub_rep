@@ -50,12 +50,18 @@ jobs:
           echo "### Build: ${took}s (limit 1000s)" >> "$GITHUB_STEP_SUMMARY"
           test "$took" -lt 900 || { echo "::error::build took ${took}s, too close to the 1000s limit"; exit 1; }
 
-      - name: Image size (organizers' limit 4 GB)
+      - name: Image size (organizers' limit 4 GB, measured like them with docker images)
         run: |
-          bytes=$(docker image inspect astra:ci --format '{{.Size}}')
-          echo "image: $bytes bytes"
-          echo "### Image: $(( bytes / 1000000 )) MB (limit 4000 MB)" >> "$GITHUB_STEP_SUMMARY"
-          test "$bytes" -lt 4000000000 || { echo "::error::image is ${bytes} bytes, limit is 4 GB"; exit 1; }
+          shown=$(docker images astra:ci --format '{{.Size}}')
+          # docker images prints e.g. 1.03GB / 950MB; with the containerd image store it can show a
+          # compressed size, so the unpacked file system (du inside the image) is checked as well.
+          shown_bytes=$(python3 -c "import re,sys; v,u=re.fullmatch(r'([\d.]+)\s*([kMG]?B)', sys.argv[1]).groups(); print(int(float(v)*{'B':1,'kB':1e3,'MB':1e6,'GB':1e9}[u]))" "$shown")
+          unpacked_bytes=$(docker run --rm --entrypoint sh astra:ci -c 'du -sxb / 2>/dev/null | cut -f1')
+          echo "docker images: $shown; unpacked: $unpacked_bytes bytes"
+          echo "### Image: docker images $shown, unpacked $(( unpacked_bytes / 1000000 )) MB (limit 4 GB)" >> "$GITHUB_STEP_SUMMARY"
+          for b in "$shown_bytes" "$unpacked_bytes"; do
+            test "$b" -lt 4000000000 || { echo "::error::image is ${b} bytes, limit is 4 GB"; exit 1; }
+          done
 
       - name: Official launch flags, no LLM key (fast path only)
         run: |
