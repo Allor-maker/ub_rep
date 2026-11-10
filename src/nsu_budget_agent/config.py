@@ -64,7 +64,7 @@ class Config:
     # Second opinion for tasks the main model failed (second pass, only if budget remains).
     second_model: str | None = DEFAULT_SECOND_MODEL
     budget: float | None = DEFAULT_BUDGET  # competition tokens; None = no limit (dev runs only)
-    concurrency: int = 3  # NeuralDeep allows 3 parallel requests; every 429 is billed
+    concurrency: int = 2  # NeuralDeep allows 3, but rejected 1 of 64 at 3; every 429 is billed
     deadline_s: float = 3300.0
     llm_timeout_s: float = 120.0
     max_repairs: int = 1
@@ -111,7 +111,7 @@ def parse_config(argv: list[str] | None = None, environ: dict | None = None) -> 
     out = args.out or env.get("OUT") or None
     log_dir = args.log_dir or env.get("AGENT_LOG_DIR") or None
     model = args.model if args.model in MODELS else _model(env, "AGENT_MODEL", DEFAULT_MODEL)
-    concurrency = args.concurrency or _env_int(env, "AGENT_CONCURRENCY", 3)
+    concurrency = args.concurrency or _env_int(env, "AGENT_CONCURRENCY", 2)
     deadline = args.deadline_s or _env_float(env, "AGENT_DEADLINE_S", 3300.0)
     return Config(
         tasks_dir=Path(tasks or "/data/tasks"),

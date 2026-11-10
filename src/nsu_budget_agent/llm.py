@@ -9,7 +9,8 @@ The organizers bill the input of EVERY request that reached the proxy, even if i
 therefore paid for: the number of parallel requests adapts (minus one on a 429, plus one
 after a run of successes), so the agent settles just under the proxy's parallel limit
 (NeuralDeep: 3 - a fixed 4 lost ~11% of a run's tokens to rejected requests). The default
-of 3 parallel requests already matches it; after a 429 the level is never raised again.
+is 2 parallel requests (at 3 NeuralDeep still rejected one request in 64); after a 429 the level
+is never raised again, and Retry-After is honoured in full by all workers together.
 """
 
 from __future__ import annotations
@@ -129,6 +130,22 @@ class AdaptiveLimit:
             cond.notify_all()
 
 
+# 429 windows that only reset after hours: waiting is pointless and retries are punished.
+_LONG_WINDOWS = ("session", "week", "daily-capacity", "abuse")
+
+
+def _retry_after(headers) -> float | None:
+    """Seconds to wait from Retry-After-Ms / Retry-After, None if absent or unreadable."""
+    for name, scale in (("retry-after-ms", 0.001), ("retry-after", 1.0)):
+        raw = headers.get(name)
+        if raw:
+            try:
+                return max(0.0, float(raw) * scale)
+            except ValueError:
+                continue
+    return None
+
+
 def _approx_tokens(text: str) -> int:
     return max(1, len(text) // 3)
 
@@ -157,6 +174,7 @@ class LLMClient:
             timeout=httpx.Timeout(timeout_s, connect=15.0), transport=transport
         )
         self.parallel = AdaptiveLimit(max_parallel)
+        self._pause_until = 0.0  # monotonic time before which no request is sent (Retry-After)
         self.stop_at_budget = stop_at_budget  # dev: emulate the organizers stopping the run
         self._consecutive_failures = 0
         self.dead_reason: str | None = None
@@ -195,6 +213,9 @@ class LLMClient:
         last_error = "unknown"
         input_cost = sum(_approx_tokens(json.dumps(m, ensure_ascii=False)) for m in messages) / 10
         for attempt in range(6):
+            pause = self._pause_until - time.monotonic()
+            if pause > 0:
+                await asyncio.sleep(pause + random.random() * 0.2)
             if self.deadline is not None and time.monotonic() > self.deadline:
                 raise LLMError("deadline")
             async with self.parallel:
@@ -241,13 +262,20 @@ class LLMClient:
                     if status not in (408, 409, 425, 429, 500, 502, 503, 504):
                         self._fail()
                         raise LLMError(last_error)
-                    retry_after = response.headers.get("retry-after")
-                    if retry_after:
-                        try:
-                            await asyncio.sleep(min(float(retry_after), 30.0))
-                            continue
-                        except ValueError:
-                            pass
+                    window = response.headers.get("x-window", "").lower()
+                    if status == 429:
+                        print(f"[astra] 429 window={window or '?'} retry_after={response.headers.get('retry-after')} "
+                              f"in_flight={level}", file=sys.stderr, flush=True)
+                    if status == 429 and window in _LONG_WINDOWS:
+                        raise self._die(f"{last_error} (window {window}: cannot be waited out)")
+                    wait = _retry_after(response.headers)
+                    if wait is not None:
+                        # Retrying before Retry-After is punished (NeuralDeep: 60-min "abuse" pause),
+                        # and every rejected request is billed: all workers hold off together.
+                        if self.deadline is not None and time.monotonic() + wait > self.deadline:
+                            raise LLMError(f"{last_error} (retry after {wait:.0f}s: past the deadline)")
+                        self._pause_until = max(self._pause_until, time.monotonic() + wait)
+                        continue
             await asyncio.sleep(min(2.0 * (attempt + 1), 15.0) + random.random())
         self._fail()
         raise LLMError(last_error)

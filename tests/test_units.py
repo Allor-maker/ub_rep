@@ -288,6 +288,29 @@ class LedgerTests(unittest.TestCase):
         self.assertAlmostEqual(ledger.per_task["t1"], ledger.spent)
 
 
+    def test_long_rate_limit_window_stops_llm_without_retries(self):
+        import httpx
+
+        from nsu_budget_agent.llm import Ledger, LLMClient, LLMUnavailable
+
+        sent = []
+
+        def respond(request: httpx.Request) -> httpx.Response:
+            sent.append(1)
+            return httpx.Response(429, headers={"x-window": "session", "retry-after": "7200"},
+                                  json={"error": {"message": "Лимит запросов тарифа на 3 часа исчерпан", "code": "429"}})
+
+        async def call():
+            client = LLMClient("http://proxy/v1", "k", ledger=Ledger(), transport=httpx.MockTransport(respond))
+            try:
+                await client.chat("t1", "qwen3.8-27b-noreason", [{"role": "user", "content": "x"}])
+            finally:
+                await client.aclose()
+
+        with self.assertRaises(LLMUnavailable):
+            asyncio.run(call())
+        self.assertEqual(len(sent), 1)
+
 
 class PlannerTests(unittest.TestCase):
     def test_calibrator_learns_per_type_and_is_shrunk(self):
