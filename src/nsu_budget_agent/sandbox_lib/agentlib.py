@@ -58,19 +58,41 @@ _ROW = re.compile(r"^\s*\|(.+)\|\s*$")
 _SEP = re.compile(r"^\s*\|?\s*:?-{2,}")
 
 
+def _cells(line):
+    """Cells of a table line with or without outer pipes ('| a | b |' or 'a | b')."""
+    body = line.strip()
+    if body.startswith("|"):
+        body = body[1:]
+    if body.endswith("|"):
+        body = body[:-1]
+    return [c.strip() for c in body.split("|")]
+
+
+def _is_table_line(line):
+    """'| a | b |' or a bare 'a | b | c' line (at least two pipes, i.e. three cells)."""
+    return bool(_ROW.match(line)) or (line.count("|") >= 2 and not line.lstrip().startswith(("#", ">", "```")))
+
+
 def _md_tables(text):
-    """Markdown tables in text -> list of (header or None, rows as lists of cells)."""
+    """Markdown tables in text -> list of (header or None, rows as lists of cells).
+
+    Also reads 'bare' pipe tables (no outer pipes, no --- separator line): their first line is
+    the header when none of its cells is a number."""
     out, block = [], []
     for line in text.splitlines() + [""]:
-        if _ROW.match(line):
+        if _is_table_line(line):
             block.append(line)
             continue
         if block:
-            rows = [[c.strip() for c in _ROW.match(b).group(1).split("|")] for b in block if not _SEP.match(b)]
+            rows = [_cells(b) for b in block if not _SEP.match(b)]
             header = None
             if len(block) > 1 and _SEP.match(block[1]):
                 header, rows = rows[0], rows[1:]
-            out.append((header, rows))
+            elif len(rows) > 1 and not _ROW.match(block[0]) and all(
+                    c and _num(c) == c for c in rows[0]):
+                header, rows = rows[0], rows[1:]
+            if rows:
+                out.append((header, rows))
             block = []
     return out
 

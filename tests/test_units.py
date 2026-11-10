@@ -195,6 +195,17 @@ class SandboxTests(unittest.TestCase):
         remove_sandbox(box)
         self.assertEqual(result.stdout.split("\n")[:4], ["Y-1", "['Ann']", "1 Ann", "hint"], result.stderr)
 
+    def test_agentlib_reads_bare_pipe_tables(self):
+        root = temp_root()
+        files = {"registry.md": "# Register\nScope: x.\nref | owner | team | rank\nB695 | Tomas Vega | amber | 5\n"
+                                "E601 | Pavel Adler | cobalt | 1\n\nNote: a | b is not a table.\n"}
+        task_dir = make_task(root, "s", "x", files=files)
+        box = make_sandbox(task_dir, task_dir / "workspace")
+        code = "from agentlib import tables\nt = tables('registry.md')\nprint(len(t), [r['team'] for r in t if r['ref'] == 'E601'], t[0]['rank'])"
+        result = asyncio.run(run_python(code, box, timeout=10))
+        remove_sandbox(box)
+        self.assertEqual(result.stdout.strip(), "2 ['cobalt'] 5", result.stderr)
+
     def test_timeout_and_agentlib(self):
         root = temp_root()
         task_dir = make_task(root, "s", "x", files=KB)
@@ -231,6 +242,13 @@ class HelperTests(unittest.TestCase):
         self.assertIsNone(format_problem("Osaka", "exact_str"))
         self.assertIsNotNone(format_problem("Sample row: {'a': 1}", "exact_int"))
         self.assertIsNotNone(format_problem("x" * 300, "exact_str"))
+        frac = "Probability of NO faulty sensors? Reduced fraction. Answer with one exact integer unless otherwise specified."
+        self.assertIsNotNone(format_problem("429", "exact_str", frac))
+        self.assertIsNone(format_problem("429/5168", "exact_str", frac))
+        money = "Round final amount HALF_UP to two decimals. Answer with one exact integer unless otherwise specified."
+        self.assertIsNotNone(format_problem("744", "exact_str", money))
+        self.assertIsNone(format_problem("744.98", "exact_str", money))
+        self.assertIsNone(format_problem("42", "exact_str", "How many boxes? Answer with one exact integer."))
 
     def test_extract_code(self):
         self.assertEqual(extract_code("text\n```python\nprint(1)\n```\n"), "print(1)\n")
