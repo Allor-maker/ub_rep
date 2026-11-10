@@ -38,8 +38,8 @@ for _ in $(seq 1 50); do
 done
 
 # The organizers' command (plus the fake proxy's address); 10 minutes is far more than needed.
-# CPUs: the regulation allows 4; CI runners may have fewer (GitHub private repos: 2).
-CPUS=$(nproc); (( CPUS > 4 )) && CPUS=4
+# CPUs: the launch command gives 8 (organizers confirmed 8 cores); CI runners may have fewer.
+CPUS=$(nproc); (( CPUS > 8 )) && CPUS=8
 timeout -k 10s 600s docker run --rm --network "$NET" \
   -e LLM_BASE_URL=http://fake-llm:8000/v1 -e LLM_API_KEY=e2e-fake-key "${AGENT[@]}" \
   -v "$RUN/tasks:/data/tasks:rw" \
