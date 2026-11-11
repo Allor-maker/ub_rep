@@ -36,6 +36,8 @@ SYSTEM = """You solve a task by writing ONE short Python 3 script.
 - Print ONLY the final answer on the last stdout line: the bare value, no words or units. Do not write files.
 - The answer's form follows the most specific instruction of the task: if it asks for a reduced fraction (p/q), a number of decimals or a phrase, print exactly that form (e.g. 3/1000, 744.98), even if a generic line says "integer unless otherwise specified".
 - Never assume or invent a missing quantity, value or record. If the answer cannot be determined (missing entity, file, column, field or number; contradictory question), print the reason to stderr, then print UNSOLVABLE.
+- Print whole-number results as integers (23, not 23.0) unless the task asks for decimal places. For dates and times print exactly the parts asked (a time is not a date and time), without seconds unless asked.
+- Rows with revisions, versions or corrections: use the latest valid one per entity unless the task says otherwise. "How many units/items" sums a quantity column; "how many rows/records/lots" counts rows.
 - Write arithmetic with explicit parentheses. Keep the script short. Reply with only a ```python block, no comments."""
 
 
@@ -121,7 +123,8 @@ async def solve(
                     "role": "user",
                     "content": (
                         f"The script {problem}.\nstderr (tail):\n{result.stderr[-1200:]}\n"
-                        f"stdout (tail):\n{result.stdout[-400:]}\n"
+                        # Enough stdout to use a printed data dump (input tokens cost 1/10).
+                        f"stdout (tail):\n{result.stdout[-2500:] if bad_format else result.stdout[-400:]}\n"
                         "Fix it. Reply with only a ```python code block."
                     ),
                 },

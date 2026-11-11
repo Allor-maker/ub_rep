@@ -199,8 +199,11 @@ class Runner:
             return False
         if record.reason in ("estimated cost exceeds remaining budget", "llm unavailable"):
             return False
-        if self.config.reward_aware and record.status == "infeasible" and task.reward < self.reward_mid:
-            return False  # low value: accept the model's UNSOLVABLE without paying for a second opinion
+        if record.status == "infeasible":
+            # Accept the model's UNSOLVABLE: the cheap model rarely flags a feasible task (13 of 296
+            # flags in our graded runs), and a second opinion on such flags never recovered a point
+            # (17 tries, ~410 tokens each); the leftover budget is worth more on verification.
+            return False
         if task.is_coding:
             # Coding is verified by tests; a model's UNSOLVABLE or a no-progress stop on
             # (likely contradictory) tests is not worth another expensive multi-call attempt.

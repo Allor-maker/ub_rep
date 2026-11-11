@@ -249,6 +249,13 @@ class HelperTests(unittest.TestCase):
         self.assertIsNotNone(format_problem("744", "exact_str", money))
         self.assertIsNone(format_problem("744.98", "exact_str", money))
         self.assertIsNone(format_problem("42", "exact_str", "How many boxes? Answer with one exact integer."))
+        # exploration output and failed lookups are not answers
+        self.assertIsNotNone(format_problem("None", "exact_str"))
+        self.assertIsNotNone(format_problem("{'sample': 'S02', 'signed': 'no'}", "exact_str"))
+        self.assertIsNotNone(format_problem("['first', 'second', 'overflow']", "exact_str"))
+        self.assertIsNone(format_problem("(4,9)", "exact_str"))
+        self.assertIsNone(format_problem("[1, 2, 3]", "exact_str"))
+        self.assertIsNone(format_problem("A-C-D", "exact_str"))
 
     def test_extract_code(self):
         self.assertEqual(extract_code("text\n```python\nprint(1)\n```\n"), "print(1)\n")

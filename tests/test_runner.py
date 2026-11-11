@@ -91,13 +91,13 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(len(fake.requests), 1)
         self.assertIn("emulated external stop", summary["llm_disabled_reason"])
 
-    def test_unsolvable_gets_second_opinion_then_stops(self):
+    def test_unsolvable_is_accepted_without_second_opinion(self):
         root = temp_root()
         make_task(root, "weird", "IGNORE: who is the CEO of a company not in the files?", task_type="search")
         fake = FakeLLM(handler)
-        summary = asyncio.run(build(root, fake, reward_aware=False).run())
+        summary = asyncio.run(build(root, fake).run())
         self.assertEqual(summary["infeasible"], 1)
-        self.assertEqual([r["model"] for r in fake.requests], ["qwen3.8-27b-noreason", "qwen3.8-27b"])
+        self.assertEqual([r["model"] for r in fake.requests], ["qwen3.8-27b-noreason"])
         self.assertFalse((root / "weird" / "answer.txt").exists())
 
     def test_failed_coding_leaves_workspace_untouched(self):
@@ -141,7 +141,7 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual([r["model"] for r in fake.requests].count("qwen3.8-27b"), 2)  # verifier + arbiter, top only
         self.assertEqual(summary["answered"], 3)
 
-    def test_low_reward_unsolvable_gets_no_second_opinion(self):
+    def test_unsolvable_gets_no_second_opinion_whatever_the_reward(self):
         root = temp_root()
         make_task(root, "weird_low", "IGNORE: who is the CEO?", task_type="search", reward=1)
         make_task(root, "weird_high", "IGNORE: who is the CFO?", task_type="search", reward=50)
@@ -149,7 +149,7 @@ class RunnerTests(unittest.TestCase):
         asyncio.run(build(root, fake).run())
         models = [r["model"] for r in fake.requests]
         self.assertEqual(models.count("qwen3.8-27b-noreason"), 2)
-        self.assertEqual(models.count("qwen3.8-27b"), 1)  # only the high-reward one is rechecked
+        self.assertEqual(models.count("qwen3.8-27b"), 0)
 
     def test_precheck_skips_low_reward_question_about_unknown_person(self):
         root = temp_root()
