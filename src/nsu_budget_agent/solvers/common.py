@@ -63,6 +63,9 @@ _FORMATS = {
 _ASKS_FRACTION = re.compile(r"\b(?:reduced\s+fraction|as\s+a\s+fraction|fraction\s+p/q|answer\s+p/q)\b", re.I)
 _ASKS_DECIMALS = re.compile(r"\b(\d|one|two|three|four)\s+decimal(?:s|\s+places?)?\b", re.I)
 _WORDS = {"one": 1, "two": 2, "three": 3, "four": 4}
+# A dict repr, or a list/tuple repr holding quoted strings: a printed row or key list, not a value.
+# Plain number pairs like (4,9) or [1, 2] are legitimate answer forms and pass.
+_DUMP = re.compile(r"\{\s*['\"].*:.*\}|[\[(]\s*['\"].*['\"]\s*[\])]")
 
 
 def format_problem(answer: str, check: str, instruction: str = "") -> str | None:
@@ -76,6 +79,14 @@ def format_problem(answer: str, check: str, instruction: str = "") -> str | None
         return f"the task expects a {check.removeprefix('exact_')} number, but the script printed {answer[:80]!r}"
     if len(answer) > 200:
         return "the last printed line is too long to be a final answer (debug output?)"
+    if answer in ("None", "null", "nan", "NaN"):
+        # A lookup that found nothing (wrong key, filter or layout), not an answer.
+        return (f"the script printed {answer}: the value was not found (check keys, filters and the real file "
+                "layout in the stdout below); if it truly cannot be determined, print UNSOLVABLE")
+    if _DUMP.fullmatch(answer):
+        # Exploration output (rows printed to look at the data) taken as the answer.
+        return (f"the last line is a printed Python dict/list {answer[:60]!r}, not the requested value "
+                "(debug output?); use the data shown below and print only the final answer")
     if check != "exact_int" and instruction:
         if _ASKS_FRACTION.search(instruction) and not re.fullmatch(r"-?\d+/\d+", answer):
             return (f"the task asks for a reduced fraction p/q (e.g. 3/1000), but the script printed {answer[:80]!r} "

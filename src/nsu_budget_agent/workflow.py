@@ -8,8 +8,10 @@ steps run directly: a framework problem must never cost a solved task.
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import logging
+import os
 import sys
 import uuid
 from collections.abc import Awaitable, Callable
@@ -25,6 +27,10 @@ def _sdk() -> dict | None:
     global _SDK, _SDK_ERROR
     if _SDK is not None or _SDK_ERROR is not None:
         return _SDK
+    # openJiuwen cancels a whole workflow after 60 s by default (WORKFLOW_EXECUTE_TIMEOUT), even
+    # with per-node timeout=-1: a slow LLM reply then lost the task. Our steps carry their own
+    # timeouts (HTTP, sandbox, cost caps), so the framework-wide limit is switched off.
+    os.environ.setdefault("WORKFLOW_EXECUTE_TIMEOUT", "-1")
     try:
         # openJiuwen binds console log handlers to sys.stdout at import: keep stdout clean.
         with contextlib.redirect_stdout(sys.stderr):
@@ -83,6 +89,10 @@ async def _call(run: PhaseRun, name: str, fn: Callable[[], Awaitable[None]]) -> 
     run.done.add(name)
     try:
         await fn()
+    except asyncio.CancelledError:
+        # Cancelled by the framework mid-step (e.g. its timeout): let the direct fallback rerun it.
+        run.done.discard(name)
+        raise
     except Exception as exc:  # noqa: BLE001 - reported to the caller via run.errors
         run.errors[name] = exc
 
