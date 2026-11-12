@@ -186,7 +186,8 @@ async def solve(
                 result = await run_process(argv, sandbox, timeout=timeout)
                 trace.exec(f"tests:attempt{attempt + 1}", result)
                 if result.ok:
-                    return SolveResult("answer", word, files=changed)
+                    reason = "reviewed: fixed" if mode == "review" else ""
+                    return SolveResult("answer", word, reason=reason, files=changed)
                 failures = failing_tests(result.stdout + result.stderr)
                 if attempt > 0 and failures and failures == previous_failures:
                     # Same tests fail after a repair: likely contradictory tests; stop spending.

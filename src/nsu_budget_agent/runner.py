@@ -40,6 +40,7 @@ class Record:
     calls: int = 0
     seconds: float = 0.0
     attempts: list[str] = field(default_factory=list)
+    spec_model: str = ""  # coding: the model offered for review/implement in pass 1 ("" = main model)
 
 
 class Runner:
@@ -65,6 +66,11 @@ class Runner:
         self.records: dict[str, Record] = {}
         self.traces: dict[str, Trace] = {}
         self.engines: dict[str, int] = {}
+        # First-pass tasks not started yet (the pending and deferred queues of _pool) and whether
+        # the pool already went over our own budget count; read by the adaptive spec-model choice.
+        self._pass1_open: list[list[Task]] = []
+        self._pass1_overflow = False
+        self.spec_reasoning = 0
         self._log_lock = asyncio.Lock()
         self.codes: dict[str, str] = {}  # task id -> script behind the published LLM answer
         self.reward_mid = 0.0  # median reward of the run
@@ -178,11 +184,14 @@ class Runner:
         estimate = self.records[task.id].estimate
         cap = max(1500.0, 15 * estimate) if task.is_coding else max(600.0, 6 * estimate)
 
+        spec = self._spec_model(task) if task.is_coding and phase == "pass1" else None
+        self.records[task.id].spec_model = spec or ""
+
         async def solve_step():
             if task.is_coding:
                 coro = coding.solve(
                     task, self.llm, model, trace, repairs=self.config.coding_repairs, cost_cap=cap,
-                    spec_model=self.config.spec_model,
+                    spec_model=spec,
                 )
             else:
                 coro = program.solve(
@@ -192,6 +201,67 @@ class Runner:
             return await asyncio.wait_for(coro, timeout=timeout), f"{phase}:{model}"
 
         await self._phase(phase, task, solve_step)
+
+    def _spec_model(self, task: Task) -> str | None:
+        """Model for a coding task in review/implement mode (used by coding.solve only there)."""
+        if self.config.spec_model or not self.config.adaptive_spec:
+            return self.config.spec_model
+        reasoning = self.config.second_model
+        if not reasoning or reasoning == self.config.model or self._pass1_overflow:
+            return None
+        remaining = self.ledger.remaining
+        if remaining is None:
+            return reasoning
+        # Not started first-pass tasks at the main model's cost, plus this one with reasoning (~3x).
+        rest = sum(self.records[t.id].estimate * self.calibrator.total_factor(t.type)
+                   for queue in self._pass1_open for t in queue)
+        own = self.records[task.id].estimate * self.calibrator.total_factor(task.type)
+        if remaining >= self.config.spec_margin * (rest + 3 * own):
+            self.spec_reasoning += 1
+            return reasoning
+        return None
+
+    def _wants_recheck(self, task: Task) -> bool:
+        """A coding answer the main model gave in review mode (visible tests already passed).
+
+        Tests cannot catch what the model missed there, and the cheap model misses more: on 92 such
+        tasks (12.11) it broke 11 the reasoning model solved, at a third of the tokens. So pass 1
+        stays cheap and the reasoning model takes a second look only with budget left."""
+        record = self.records[task.id]
+        return (
+            self.config.coding_recheck
+            and task.is_coding
+            and record.status == "answered"
+            and record.source.startswith("pass1:")
+            and record.reason.startswith("reviewed")
+            and not record.spec_model  # the reasoning model already did the review
+        )
+
+    async def _recheck(self, task: Task, model: str) -> None:
+        """Review the (already published) code again with the reasoning model; adopt its edit only
+        if the visible tests still pass (coding.solve checks that), otherwise keep the answer."""
+        if self.llm is None:
+            return
+        trace = self.traces[task.id]
+        record = self.records[task.id]
+        timeout = max(5.0, min(240.0, self._time_left() - 15))
+        cap = max(1500.0, 15 * record.estimate)
+
+        async def solve_step():
+            coro = coding.solve(task, self.llm, model, trace, repairs=self.config.coding_repairs,
+                                cost_cap=cap, spec_model=model)
+            return await asyncio.wait_for(coro, timeout=timeout), f"recheck:{model}"
+
+        def finish(task: Task, result: SolveResult, source: str) -> None:
+            if result.status == "answer" and result.files:
+                self._finish(task, result, source)
+                return
+            record.attempts.append(f"{source}:{result.status}")
+            record.cost, record.calls = round(trace.cost, 1), trace.calls
+            self._log(f"{task.id:<24} recheck kept ({result.status}: {result.reason[:40]}) "
+                      f"cost={record.cost:7.1f} total={self.ledger.spent:9.1f}")
+
+        await self._phase("recheck", task, solve_step, finish)
 
     def _wants_second_opinion(self, task: Task) -> bool:
         record = self.records[task.id]
@@ -291,6 +361,8 @@ class Runner:
         pending = list(tasks)
         deferred: list[Task] = []
         overflow = False
+        if first_pass:
+            self._pass1_open, self._pass1_overflow = [pending, deferred], False
 
         def pick() -> Task:
             if not first_pass or overflow:
@@ -305,7 +377,7 @@ class Runner:
                     return
                 if not pending:
                     if first_pass and deferred and not overflow and self.config.soft_budget:
-                        overflow = True
+                        overflow = self._pass1_overflow = True
                         pending.extend(sorted(deferred, key=self._calibrated))
                         deferred.clear()
                         self._log(f"over our own budget count: trying {len(pending)} deferred tasks, cheapest first")
@@ -330,6 +402,8 @@ class Runner:
                     self.calibrator.observe(task.type, record.estimate, trace.cost - cost_before)
 
         await asyncio.gather(*(worker() for _ in range(self.config.concurrency)))
+        if first_pass:
+            self._pass1_open = []
         for task in pending + deferred:  # never started (time, budget or LLM gone)
             record = self.records[task.id]
             if record.status == "pending":
@@ -390,6 +464,13 @@ class Runner:
                     await self._pool(
                         retry, lambda t: self._attempt(t, second_model, "pass2", self.config.max_repairs)
                     )
+                # Before verification: a review recheck recovered ~1 task per 5k tokens (12.11),
+                # verification ~1.4% of points for 30% of tokens (10.11).
+                recheck = [t for t in tasks if self._wants_recheck(t)]
+                recheck.sort(key=lambda t: -t.reward)
+                if recheck and self.llm.available and second_model != self.config.model and self._budget_left():
+                    self._log(f"coding recheck: {len(recheck)} reviewed answers with {second_model}")
+                    await self._pool(recheck, lambda t: self._recheck(t, second_model))
                 verify = [t for t in tasks if self._wants_verification(t)]
                 verify.sort(key=lambda t: -t.reward)
                 if verify and self.llm.available and second_model != self.config.model and self._budget_left():
@@ -412,6 +493,7 @@ class Runner:
             "not_attempted": sum(r.status in ("pending", "skipped") for r in records),
             "reward_answered": sum(r.reward for r in records if r.status == "answered"),
             "tokens_spent": round(self.ledger.spent, 1),
+            "coding_reasoning_offered": self.spec_reasoning,
             "llm_calls": self.ledger.calls,
             "llm_failed_calls": self.ledger.failed_calls,
             "llm_rate_limited": self.llm.parallel.rate_limited if self.llm else 0,

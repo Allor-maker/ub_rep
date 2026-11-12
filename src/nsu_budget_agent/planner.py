@@ -66,6 +66,8 @@ class Calibrator:
         self.enabled = enabled
         self._log_sum: dict[str, float] = {}
         self._count: dict[str, int] = {}
+        self._est_sum: dict[str, float] = {}
+        self._act_sum: dict[str, float] = {}
 
     def factor(self, task_type: str) -> float:
         if not self.enabled:
@@ -73,11 +75,25 @@ class Calibrator:
         n = self._count.get(task_type, 0)
         return math.exp(self._log_sum.get(task_type, 0.0) / (n + self.PRIOR_WEIGHT))
 
+    def total_factor(self, task_type: str) -> float:
+        """Factor for forecasting a SUM of costs: sum(actual) / sum(estimate), shrunk towards 1 by
+        PRIOR_WEIGHT average tasks. The geometric mean above ranks tasks well but misses the costly
+        tail: on 19 runs (12.11) it forecast the remaining first-pass cost at 0.88-0.93 of the actual
+        (median), this ratio at 0.97-1.00; both are off by up to 0.6x-1.5x on single sets."""
+        n = self._count.get(task_type, 0)
+        if not self.enabled or n == 0:
+            return 1.0
+        est, act = self._est_sum[task_type], self._act_sum[task_type]
+        prior = self.PRIOR_WEIGHT * est / n
+        return (act + prior) / (est + prior)
+
     def observe(self, task_type: str, estimate: float, actual: float) -> None:
         if not self.enabled or estimate <= 0 or actual <= 0:
             return
         self._log_sum[task_type] = self._log_sum.get(task_type, 0.0) + math.log(actual / estimate)
         self._count[task_type] = self._count.get(task_type, 0) + 1
+        self._est_sum[task_type] = self._est_sum.get(task_type, 0.0) + estimate
+        self._act_sum[task_type] = self._act_sum.get(task_type, 0.0) + actual
 
     def snapshot(self) -> dict[str, dict]:
         return {t: {"factor": round(self.factor(t), 2), "tasks": n} for t, n in sorted(self._count.items())}
