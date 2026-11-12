@@ -182,7 +182,7 @@ class Runner:
             if task.is_coding:
                 coro = coding.solve(
                     task, self.llm, model, trace, repairs=self.config.coding_repairs, cost_cap=cap,
-                    spec_model=self.config.second_model,
+                    spec_model=self.config.spec_model,
                 )
             else:
                 coro = program.solve(

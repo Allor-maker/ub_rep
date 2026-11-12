@@ -182,7 +182,8 @@ class RunnerTests(unittest.TestCase):
         fake = FakeLLM(lambda m, model: "### FILE: mylib.py\n```python\n" + good + "```")
         asyncio.run(build(root, fake, second_pass=False).run())
         self.assertEqual(len(fake.requests), 2)  # weak passing tests did not short-circuit; no tests != pass
-        self.assertEqual({r["model"] for r in fake.requests}, {"qwen3.8-27b"})  # spec tasks -> reasoning model
+        # Spec tasks use the main model unless AGENT_SPEC_MODEL names another one.
+        self.assertEqual({r["model"] for r in fake.requests}, {"qwen3.8-27b-noreason"})
         for task_id in ("review", "implement"):
             self.assertEqual((root / task_id / "workspace" / "mylib.py").read_text(), good)
             self.assertEqual((root / task_id / "answer.txt").read_text(), "DONE\n")

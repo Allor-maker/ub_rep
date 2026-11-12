@@ -63,6 +63,10 @@ class Config:
     model: str = DEFAULT_MODEL
     # Second opinion for tasks the main model failed (second pass, only if budget remains).
     second_model: str | None = DEFAULT_SECOND_MODEL
+    # Coding when the visible tests cannot judge (they already pass, or there are none). None = the
+    # main model. The reasoning model was used here until 12.11: its reasoning length varied up to
+    # 6x on the same prompt (274 vs 1621 output tokens), ~half of coding spend on benchmark_500.
+    spec_model: str | None = None
     budget: float | None = DEFAULT_BUDGET  # competition tokens; None = no limit (dev runs only)
     concurrency: int = 2  # NeuralDeep allows 3, but rejected 1 of 64 at 3; every 429 is billed
     deadline_s: float = 3300.0
@@ -120,6 +124,7 @@ def parse_config(argv: list[str] | None = None, environ: dict | None = None) -> 
         api_key=(env.get("LLM_API_KEY") or "").strip() or None,
         model=model or DEFAULT_MODEL,
         second_model=_model(env, "AGENT_SECOND_MODEL", DEFAULT_SECOND_MODEL),
+        spec_model=_model(env, "AGENT_SPEC_MODEL", None),
         budget=_env_float(env, "BUDGET", DEFAULT_BUDGET),
         concurrency=max(1, min(int(concurrency), 16)),
         deadline_s=max(30.0, min(float(deadline or 3300.0), 3550.0)),
