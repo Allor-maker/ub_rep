@@ -253,6 +253,26 @@ class HelperTests(unittest.TestCase):
         self.assertIsNone(format_problem("value=7", "exact_str", plain))
         self.assertIsNotNone(format_problem("['a', 'b']", "exact_str", "Which keys?"))
 
+    def test_paid_hint_only_for_search_by_default(self):
+        import os
+        from unittest import mock
+
+        from nsu_budget_agent.solvers.program import PAID_HINT, build_messages
+        from nsu_budget_agent.tasks import Task
+
+        def system(task_type, env):
+            task = Task("t", task_type, "Question?", 1.0, "exact_str", Path("."))
+            with mock.patch.dict(os.environ, env, clear=False):
+                if not env:
+                    os.environ.pop("AGENT_PAID_HINT", None)
+                return build_messages(task, "")[0]["content"]
+
+        self.assertTrue(system("search", {}).endswith(PAID_HINT))
+        self.assertFalse(system("math", {}).endswith(PAID_HINT))
+        self.assertFalse(system("data_analysis", {}).endswith(PAID_HINT))
+        self.assertTrue(system("math", {"AGENT_PAID_HINT": "all"}).endswith(PAID_HINT))
+        self.assertFalse(system("search", {"AGENT_PAID_HINT": "0"}).endswith(PAID_HINT))
+
     def test_wants_json_phrasings(self):
         from nsu_budget_agent.solvers.common import wants_json
         for text in ("Write one JSON value in answer.txt.", "Answer with a JSON literal.",

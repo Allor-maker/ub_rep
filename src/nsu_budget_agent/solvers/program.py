@@ -8,6 +8,7 @@ that re-sends the growing history on every step.
 
 from __future__ import annotations
 
+import os
 import re
 
 from ..config import is_reasoning
@@ -68,11 +69,25 @@ JSON_HINT = """
 ANSWER FORMAT (overrides "bare value" above): this task wants one JSON value. End the script with print(json.dumps(answer)): strings in double quotes, true/false, numbers unquoted unless the task asks for a string (then e.g. "1.500000"). A question about one item (Which X? Return the ID) gets one value, not a list; print a list only when the task asks for a list or several items. Print nothing after it."""
 
 
+# "Tokens are billed" line. Measured 12.11 on the non-coding parts of 4 sets (first pass, same code):
+# search -19% tokens at equal quality (10 fixed / 7 broken); maths -14% but 18 broken / 6 fixed,
+# data -5% and 11 broken / 5 fixed (the model shortens the computation). So: search only.
+# AGENT_PAID_HINT: "search" (default), "all" or "1" for every type, "0" off.
+PAID_HINT = ("\n- Tokens are billed (output costs 10x input) and the run has a fixed token budget: write the "
+             "shortest correct script; no text outside the code block, no extra prints.")
+
+
+def paid_hint_for(task: Task) -> bool:
+    mode = os.environ.get("AGENT_PAID_HINT", "search").strip().lower()
+    return mode in ("1", "all") or (mode == "search" and task.type == "search")
+
+
 def build_messages(task: Task, preview: str) -> list[dict]:
     user = f"TASK:\n{task.instruction}\n\nFILES (relative to the working directory):\n{spotlight(preview)}"
     if wants_json(task.instruction):
         user += JSON_HINT
-    return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}]
+    system = SYSTEM + PAID_HINT if paid_hint_for(task) else SYSTEM
+    return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
 
 async def solve(
