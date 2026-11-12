@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ast
+import json
 import re
 from dataclasses import dataclass
 
@@ -47,6 +49,66 @@ def normalize_answer(raw: str, check: str = "") -> str:
     return value[:2000]
 
 
+# A task that asks for "one JSON value" is graded by parsing answer.txt as JSON: a bare word
+# or Python's True/None does not parse, so the bare answer is re-encoded before writing.
+# Phrasings that ask for the ANSWER as JSON; "JSON Pointer", "a JSON file", "JSON lines" (inputs) do not.
+_WANTS_JSON = re.compile(
+    r"\bJSON\s+(?:value|literal)\b"
+    r"|\b(?:as|in)\s+(?:a\s+|valid\s+|strict\s+)*JSON\b(?!\s+(?:pointer|file|lines|object\s+key))"
+    r"|\banswer(?:\.txt)?\b[^.]{0,60}\bJSON\b(?!\s+pointer)"
+    r"|\bJSON[- ]encoded\b|\bvalid\s+JSON\b",
+    re.I,
+)
+# "as a six-place decimal string", "Return a reduced fraction string": the number goes in quotes.
+_WANTS_STRING = re.compile(r"\b(?:as|return)\b[^.]{0,40}\bstring\b", re.I)
+
+
+def _no_constant(name: str):
+    raise ValueError(name)
+
+
+def wants_json(instruction: str) -> bool:
+    return _WANTS_JSON.search(instruction) is not None
+
+
+def json_line(line: str) -> str | None:
+    """The printed line itself if it already is one valid JSON value (the model's own encoding)."""
+    value = line.strip()
+    try:
+        json.loads(value, parse_constant=_no_constant)
+    except ValueError:
+        return None
+    return value
+
+
+def to_json_answer(answer: str, instruction: str) -> str:
+    """Bare answer -> the JSON value the task asks for; unchanged if the task does not ask for JSON."""
+    match = _WANTS_JSON.search(instruction)
+    if match is None:
+        return answer
+    value = answer.strip()
+    try:
+        parsed = json.loads(value, parse_constant=_no_constant)
+        valid = True
+    except ValueError:
+        valid = False
+        try:
+            parsed = ast.literal_eval(value)  # Python repr: True, None, ['a', 'b'], {'k': 1.5}
+            if not isinstance(parsed, (bool, int, float, str, list, dict, type(None))):
+                parsed = value
+        except (ValueError, SyntaxError, MemoryError, RecursionError):
+            parsed = value  # plain text: a JSON string
+    if isinstance(parsed, (int, float)) and not isinstance(parsed, bool) \
+            and _WANTS_STRING.search(instruction[:match.start()]):
+        return json.dumps(value, ensure_ascii=False)  # keep the printed digits exactly
+    if valid:
+        return value
+    try:
+        return json.dumps(parsed, ensure_ascii=False, allow_nan=False)
+    except (TypeError, ValueError):
+        return json.dumps(value, ensure_ascii=False)
+
+
 def spotlight(data: str) -> str:
     """Spotlighting (delimiting): wrap untrusted file content in tags the system prompt names
     as pure data; a closing tag planted inside the data is defused so it cannot end the block."""
@@ -83,7 +145,12 @@ def format_problem(answer: str, check: str, instruction: str = "") -> str | None
         # A lookup that found nothing (wrong key, filter or layout), not an answer.
         return (f"the script printed {answer}: the value was not found (check keys, filters and the real file "
                 "layout in the stdout below); if it truly cannot be determined, print UNSOLVABLE")
-    if _DUMP.fullmatch(answer):
+    wants_json = bool(_WANTS_JSON.search(instruction))
+    if wants_json and ": " in answer and not answer.lstrip().startswith(("{", "[")):
+        # "Answer written: 10", "Files in directory: [...]": a status line, not the value.
+        return (f"the last line {answer[:60]!r} is a message, not the answer; do not write answer.txt, "
+                "print only the final value on the last line")
+    if _DUMP.fullmatch(answer) and not wants_json:  # a JSON task may ask for a list or an object
         # Exploration output (rows printed to look at the data) taken as the answer.
         return (f"the last line is a printed Python dict/list {answer[:60]!r}, not the requested value "
                 "(debug output?); use the data shown below and print only the final answer")

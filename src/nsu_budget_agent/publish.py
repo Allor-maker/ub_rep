@@ -16,6 +16,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from .solvers.common import to_json_answer
 from .tasks import Task
 
 
@@ -61,6 +62,8 @@ class Publisher:
             atomic_write(target, content)
 
     def publish(self, task: Task, answer: str) -> bool:
+        if not task.is_coding:
+            answer = to_json_answer(answer, task.instruction)
         text = answer.strip() + "\n"
         ok = False
         for target in (task.dir / "answer.txt",):

@@ -21,10 +21,12 @@ from .common import (
     SolveResult,
     extract_code,
     format_problem,
+    json_line,
     last_line,
     normalize_answer,
     says_unsolvable,
     spotlight,
+    wants_json,
 )
 
 SYSTEM = """You solve a task by writing ONE short Python 3 script.
@@ -60,8 +62,16 @@ async def judge(task: Task, llm: LLMClient, model: str, trace: Trace, a: tuple[s
     return letters[-1] if letters else None
 
 
+# Added only when the task asks for a JSON answer, so other tasks see the same prompt as before.
+JSON_HINT = """
+
+ANSWER FORMAT (overrides "bare value" above): this task wants one JSON value. End the script with print(json.dumps(answer)): strings in double quotes, true/false, numbers unquoted unless the task asks for a string (then e.g. "1.500000"). A question about one item (Which X? Return the ID) gets one value, not a list; print a list only when the task asks for a list or several items. Print nothing after it."""
+
+
 def build_messages(task: Task, preview: str) -> list[dict]:
     user = f"TASK:\n{task.instruction}\n\nFILES (relative to the working directory):\n{spotlight(preview)}"
+    if wants_json(task.instruction):
+        user += JSON_HINT
     return [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}]
 
 
@@ -112,6 +122,8 @@ async def solve(
             if bad_format and attempt > 0 and bad_format.startswith("the task asks for"):
                 bad_format = None  # form hint already given once: the model kept its form deliberately
             if result.ok and answer and not bad_format:
+                if wants_json(task.instruction):
+                    answer = json_line(last_line(result.stdout)) or answer  # keep the model's own quoting
                 return SolveResult("answer", answer, code=code)
             if bad_format:
                 problem = f"ran, but {bad_format}"
