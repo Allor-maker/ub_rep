@@ -4,13 +4,12 @@ Cost of a call = prompt_tokens / 10 + completion_tokens (reasoning tokens are pa
 completion_tokens in OpenAI/vLLM semantics; if a proxy reports them separately and they
 exceed completion_tokens, the larger value is charged).
 
-The organizers bill the input of EVERY request that reached the proxy, even if it failed
+The input of EVERY request that reached the proxy is billed, even if it failed
 (429/5xx/timeout): such a request is charged its estimated prompt size / 10. A 429 is
-therefore paid for: the number of parallel requests adapts (minus one on a 429, plus one
-after a run of successes), so the agent settles just under the proxy's parallel limit
-(NeuralDeep: 3 - a fixed 4 lost ~11% of a run's tokens to rejected requests). The default
-is 2 parallel requests (at 3 NeuralDeep still rejected one request in 64); after a 429 the level
-is never raised again, and Retry-After is honoured in full by all workers together.
+therefore paid for: the number of parallel requests adapts (minus one on a 429), so the agent
+settles just under the proxy's parallel limit (a fixed 4 lost ~11% of a run's tokens to
+rejected requests). The default is 2 parallel requests (3 still got occasional 429s); after a
+429 the ceiling is never raised again, and Retry-After is honoured in full by all workers together.
 """
 
 from __future__ import annotations
@@ -86,9 +85,8 @@ class AdaptiveLimit:
     def __init__(self, maximum: int, release_delay: float = 0.0) -> None:
         self.maximum = max(1, maximum)
         self.limit = self.maximum
-        # The server frees a parallel slot a moment after the reply (measured 10.11: at 2 parallel
-        # requests NeuralDeep reported 0 of 3 slots free in 4 of 24 replies; at 3 - a 429). So our
-        # slot is released only release_delay seconds after the reply.
+        # The server frees a parallel slot a moment after the reply (right after a reply it sometimes
+        # reports no free slots), so our slot is released only release_delay seconds later.
         self.release_delay = release_delay
         self.active = 0
         self.rate_limited = 0
@@ -188,7 +186,7 @@ class LLMClient:
         self.parallel = AdaptiveLimit(max_parallel, release_delay=0.5)
         self.server_full = 0  # replies after which the server reported no free parallel slot
         self._pause_until = 0.0  # monotonic time before which no request is sent (Retry-After)
-        self.stop_at_budget = stop_at_budget  # dev: emulate the organizers stopping the run
+        self.stop_at_budget = stop_at_budget  # dev: emulate the external stop of the run
         self._consecutive_failures = 0
         self.dead_reason: str | None = None
 
@@ -199,7 +197,7 @@ class LLMClient:
     def _die(self, reason: str) -> LLMUnavailable:
         if self.dead_reason is None:
             self.dead_reason = reason
-            print(f"[astra] LLM disabled: {reason}", file=sys.stderr)
+            print(f"[agent] LLM disabled: {reason}", file=sys.stderr)
         return LLMUnavailable(reason)
 
     async def aclose(self) -> None:
@@ -279,13 +277,13 @@ class LLMClient:
                         raise LLMError(last_error)
                     window = response.headers.get("x-window", "").lower()
                     if status == 429:
-                        print(f"[astra] 429 window={window or '?'} retry_after={response.headers.get('retry-after')} "
+                        print(f"[agent] 429 window={window or '?'} retry_after={response.headers.get('retry-after')} "
                               f"in_flight={level}", file=sys.stderr, flush=True)
                     if status == 429 and window in _LONG_WINDOWS:
                         raise self._die(f"{last_error} (window {window}: cannot be waited out)")
                     wait = _retry_after(response.headers)
                     if wait is not None:
-                        # Retrying before Retry-After is punished (NeuralDeep: 60-min "abuse" pause),
+                        # Retrying before Retry-After is punished (a long "abuse" pause),
                         # and every rejected request is billed: all workers hold off together.
                         if self.deadline is not None and time.monotonic() + wait > self.deadline:
                             raise LLMError(f"{last_error} (retry after {wait:.0f}s: past the deadline)")

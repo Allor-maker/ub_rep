@@ -80,7 +80,7 @@ class Runner:
     # ------------------------------------------------------------------ helpers
     def _log(self, message: str) -> None:
         elapsed = time.monotonic() - self.started
-        print(f"[astra {elapsed:6.1f}s] {message}", file=sys.stderr, flush=True)
+        print(f"[agent {elapsed:6.1f}s] {message}", file=sys.stderr, flush=True)
 
     def _time_left(self) -> float:
         return self.deadline - time.monotonic()
@@ -224,9 +224,9 @@ class Runner:
     def _wants_recheck(self, task: Task) -> bool:
         """A coding answer the main model gave in review mode (visible tests already passed).
 
-        Tests cannot catch what the model missed there, and the cheap model misses more: on 92 such
-        tasks (12.11) it broke 11 the reasoning model solved, at a third of the tokens. So pass 1
-        stays cheap and the reasoning model takes a second look only with budget left."""
+        Tests cannot catch what the model missed there, and the cheap model misses more, at a third
+        of the tokens. So pass 1 stays cheap and the reasoning model takes a second look only
+        with budget left."""
         record = self.records[task.id]
         return (
             self.config.coding_recheck
@@ -270,9 +270,9 @@ class Runner:
         if record.reason in ("estimated cost exceeds remaining budget", "llm unavailable"):
             return False
         if record.status == "infeasible":
-            # Accept the model's UNSOLVABLE: the cheap model rarely flags a feasible task (13 of 296
-            # flags in our graded runs), and a second opinion on such flags never recovered a point
-            # (17 tries, ~410 tokens each); the leftover budget is worth more on verification.
+            # Accept the model's UNSOLVABLE: the cheap model rarely flags a feasible task, and a second
+            # opinion on such flags did not recover points in our runs; the leftover budget is worth
+            # more on verification.
             return False
         if task.is_coding:
             # Coding is verified by tests; a model's UNSOLVABLE or a no-progress stop on
@@ -464,8 +464,7 @@ class Runner:
                     await self._pool(
                         retry, lambda t: self._attempt(t, second_model, "pass2", self.config.max_repairs)
                     )
-                # Before verification: a review recheck recovered ~1 task per 5k tokens (12.11),
-                # verification ~1.4% of points for 30% of tokens (10.11).
+                # Before verification: a review recheck recovers more points per token than verification.
                 recheck = [t for t in tasks if self._wants_recheck(t)]
                 recheck.sort(key=lambda t: -t.reward)
                 if recheck and self.llm.available and second_model != self.config.model and self._budget_left():

@@ -29,7 +29,7 @@ jobs:
         id: build
         run: |
           start=$(date +%s)
-          docker build -t astra:ci .
+          docker build -t hack:ci .
           took=$(( $(date +%s) - start ))
           echo "build took ${took}s"
           echo "took=${took}" >> "$GITHUB_OUTPUT"
@@ -39,11 +39,11 @@ jobs:
       - name: Image size (organizers' limit 4 GB, measured like them with docker images)
         id: size
         run: |
-          shown=$(docker images astra:ci --format '{{.Size}}')
+          shown=$(docker images hack:ci --format '{{.Size}}')
           # docker images prints e.g. 1.03GB / 950MB; with the containerd image store it can show a
           # compressed size, so the unpacked file system (du inside the image) is checked as well.
           shown_bytes=$(python3 -c "import re,sys; v,u=re.fullmatch(r'([\d.]+)\s*([kMG]?B)', sys.argv[1]).groups(); print(int(float(v)*{'B':1,'kB':1e3,'MB':1e6,'GB':1e9}[u]))" "$shown")
-          unpacked_bytes=$(docker run --rm --entrypoint sh astra:ci -c 'du -sxb / 2>/dev/null | cut -f1')
+          unpacked_bytes=$(docker run --rm --entrypoint sh hack:ci -c 'du -sxb / 2>/dev/null | cut -f1')
           echo "docker images: $shown; unpacked: $unpacked_bytes bytes"
           echo "shown=${shown}" >> "$GITHUB_OUTPUT"
           echo "unpacked=$(( unpacked_bytes / 1000000 )) MB" >> "$GITHUB_OUTPUT"
@@ -60,5 +60,5 @@ jobs:
           chmod -R 777 /tmp/tasks
           docker run --rm -v /tmp/tasks:/data/tasks:rw --read-only --tmpfs /tmp:rw,size=2g -e HOME=/tmp \
             --cap-drop ALL --security-opt no-new-privileges --pids-limit 512 --workdir /app \
-            --entrypoint python astra:ci /app/run_agent.py --tasks-dir /data/tasks
+            --entrypoint python hack:ci /app/run_agent.py --tasks-dir /data/tasks
           test "$(cat /tmp/tasks/math_1/answer.txt)" = "4"

@@ -72,7 +72,7 @@ def load_tasks(root: Path) -> list[Task]:
     try:
         candidates = sorted(p for p in root.iterdir() if p.is_dir())
     except OSError as exc:
-        print(f"[astra] cannot list tasks dir {root}: {exc}", file=sys.stderr)
+        print(f"[agent] cannot list tasks dir {root}: {exc}", file=sys.stderr)
         return tasks
     if (root / "task.json").is_file():  # a single task passed directly
         candidates = [root]
