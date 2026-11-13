@@ -1,7 +1,0 @@
-{
- "task_id": "math_free",
- "task_type": "math",
- "reward": 1,
- "check": "exact_int",
- "instruction": "A warehouse starts with 10 boxes. It ships 2 boxes per day for 3 days. How many boxes does it have at the end?"
-}

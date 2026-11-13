@@ -1,7 +1,0 @@
-{
- "task_id": "search_bare_table",
- "task_type": "search",
- "reward": 5,
- "check": "exact_str",
- "instruction": "e2e-search-bare: Which team is recorded for E601 in registry.md? Output only the team name."
-}

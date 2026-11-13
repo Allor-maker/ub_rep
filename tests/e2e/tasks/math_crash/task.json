@@ -1,7 +1,0 @@
-{
- "task_id": "math_crash",
- "task_type": "math",
- "reward": 3,
- "check": "exact_int",
- "instruction": "e2e-math-crash: A tank holds 120 liters, leaks 7 liters per hour for 6 hours, then 30 liters are added. How many liters are in the tank?"
-}

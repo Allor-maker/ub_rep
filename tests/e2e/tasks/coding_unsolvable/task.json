@@ -1,7 +1,0 @@
-{
- "task_id": "coding_unsolvable",
- "task_type": "coding",
- "reward": 2,
- "check": "unittest",
- "instruction": "e2e-coding-unsolvable: In mylib.py implement f(x) so that f(0) returns both the integer 1 and the integer 2 in the same call; a single return value is required. If this is impossible, leave mylib.py unchanged and write UNSOLVABLE to answer.txt."
-}
