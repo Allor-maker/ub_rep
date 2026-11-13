@@ -1,6 +1,6 @@
 name: CI
 
-# Every push and pull request: the Docker image is built and checked the way the organizers
+# Every push and pull request: the Docker image is built and checked the way the official launch
 # will run it (build time, size, official launch flags). Unit tests, lint and end-to-end
 # scenarios with a fake LLM live in the `dev` branch.
 "on":
@@ -25,7 +25,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build (organizers' limit 1000 s)
+      - name: Build (limit 1000 s from the rules)
         id: build
         run: |
           start=$(date +%s)
@@ -36,7 +36,7 @@ jobs:
           echo "### Build: ${took}s (limit 1000s)" >> "$GITHUB_STEP_SUMMARY"
           test "$took" -lt 900 || { echo "::error::build took ${took}s, too close to the 1000s limit"; exit 1; }
 
-      - name: Image size (organizers' limit 4 GB, measured like them with docker images)
+      - name: Image size (limit 4 GB from the rules, measured with docker images)
         id: size
         run: |
           shown=$(docker images hack:ci --format '{{.Size}}')
