@@ -18,6 +18,7 @@ from ..sandbox import make_sandbox, remove_sandbox, run_python
 from ..tasks import Task
 from ..trace import Trace
 from .common import (
+    SOFT_PROBLEMS,
     UNSOLVABLE,
     SolveResult,
     extract_code,
@@ -64,14 +65,15 @@ async def judge(task: Task, llm: LLMClient, model: str, trace: Trace, a: tuple[s
 
 
 # Added only when the task asks for a JSON answer, so other tasks see the same prompt as before.
+# A plain sentence on types: a stricter, longer version fixed more types but made search scripts
+# careful and long, which cost more tokens than it won.
 JSON_HINT = """
 
-ANSWER FORMAT (overrides "bare value" above): this task wants one JSON value. End the script with print(json.dumps(answer)): strings in double quotes, true/false, numbers unquoted unless the task asks for a string (then e.g. "1.500000"). A question about one item (Which X? Return the ID) gets one value, not a list; print a list only when the task asks for a list or several items. Print nothing after it."""
+ANSWER FORMAT (overrides "bare value" above): this task wants one JSON value. End the script with print(json.dumps(answer)): strings in double quotes, true/false, numbers unquoted unless the task asks for a string (then e.g. "1.500000"). A question about one item (Which X? Return the ID) gets one value, not a list; print a list only when the task asks for a list or several items. Print nothing after it. Types: counts and indices are numbers; exactly N decimal places -> a string like "1.000000"; "p/q" strings -> exact fractions.Fraction from the input text, not floats."""
 
 
-# "Tokens are billed" line. Measured 12.11 on the non-coding parts of 4 sets (first pass, same code):
-# search -19% tokens at equal quality (10 fixed / 7 broken); maths -14% but 18 broken / 6 fixed,
-# data -5% and 11 broken / 5 fixed (the model shortens the computation). So: search only.
+# "Tokens are billed" line: in search it saves tokens at equal quality; in maths and data the model
+# shortens the computation itself and breaks more answers than it saves. So: search only.
 # AGENT_PAID_HINT: "search" (default), "all" or "1" for every type, "0" off.
 PAID_HINT = ("\n- Tokens are billed (output costs 10x input) and the run has a fixed token budget: write the "
              "shortest correct script; no text outside the code block, no extra prints.")
@@ -134,7 +136,11 @@ async def solve(
             if result.ok and answer == UNSOLVABLE:
                 return SolveResult("infeasible", reason="script: " + result.stderr.strip()[-300:])
             bad_format = format_problem(answer, task.check, task.instruction) if result.ok and answer else None
-            if bad_format and attempt > 0 and bad_format.startswith("the task asks for"):
+            if (not bad_format and result.ok and answer and wants_json(task.instruction)
+                    and json_line(last_line(result.stdout)) is None):
+                bad_format = (f"the last line is not one JSON value ({last_line(result.stdout)[:60]!r}): end the "
+                              "script with print(json.dumps(answer)) and print nothing after it")
+            if bad_format and attempt > 0 and bad_format.startswith(SOFT_PROBLEMS):
                 bad_format = None  # form hint already given once: the model kept its form deliberately
             if result.ok and answer and not bad_format:
                 if wants_json(task.instruction):

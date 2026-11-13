@@ -92,7 +92,7 @@ def make_sandbox(task_dir: Path, workspace: Path, *, parent: Path | None = None)
     Inside the copy, ``workspace`` is a symlink to ``.`` so both "sales.csv" and
     "workspace/sales.csv" (two styles seen in instructions) resolve to the same file.
     """
-    root = Path(tempfile.mkdtemp(prefix="astra-", dir=str(parent) if parent else None))
+    root = Path(tempfile.mkdtemp(prefix="agent-", dir=str(parent) if parent else None))
     if workspace.is_dir() and _dir_size(workspace) <= MAX_COPY_BYTES:
         for item in workspace.iterdir():
             if item.name in _SKIP_NAMES:
@@ -163,7 +163,7 @@ async def run_process(
 
 async def run_python(code: str, cwd: Path, *, timeout: float = 20.0) -> ExecResult:
     """Run a script stored OUTSIDE the sandbox dir, with the sandbox as the cwd."""
-    holder = Path(tempfile.mkdtemp(prefix="astra-code-"))
+    holder = Path(tempfile.mkdtemp(prefix="agent-code-"))
     script = holder / "solve.py"
     script.write_text(code, encoding="utf-8")
     try:

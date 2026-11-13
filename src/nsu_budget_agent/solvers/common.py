@@ -59,8 +59,11 @@ _WANTS_JSON = re.compile(
     r"|\bJSON[- ]encoded\b|\bvalid\s+JSON\b",
     re.I,
 )
-# "as a six-place decimal string", "Return a reduced fraction string": the number goes in quotes.
-_WANTS_STRING = re.compile(r"\b(?:as|return)\b[^.]{0,40}\bstring\b", re.I)
+# How a value is typed (number or string, N decimal places, p/q, boolean, null) is the model's choice,
+# guided by program.JSON_HINT: rules that guessed the type from words of the task broke on new
+# phrasings of the same requirement. Here only the ENCODING is repaired.
+# Repair messages after which the model may keep its answer: printed again, it is taken as is.
+SOFT_PROBLEMS = ("the task asks for", "the script printed null", "the last line is not one JSON value")
 
 
 def _no_constant(name: str):
@@ -82,27 +85,25 @@ def json_line(line: str) -> str | None:
 
 
 def to_json_answer(answer: str, instruction: str) -> str:
-    """Bare answer -> the JSON value the task asks for; unchanged if the task does not ask for JSON."""
-    match = _WANTS_JSON.search(instruction)
-    if match is None:
+    """Bare answer -> one JSON value (unchanged if the task does not ask for JSON).
+
+    The model's own JSON is kept as printed (except the string "true"/"false", which becomes the
+    boolean); a Python repr (True, None, ['a', 'b'], {'k': 1.5}) is re-encoded and plain text becomes a
+    JSON string. Numbers and strings are never retyped."""
+    if _WANTS_JSON.search(instruction) is None:
         return answer
     value = answer.strip()
-    try:
-        parsed = json.loads(value, parse_constant=_no_constant)
-        valid = True
-    except ValueError:
-        valid = False
-        try:
-            parsed = ast.literal_eval(value)  # Python repr: True, None, ['a', 'b'], {'k': 1.5}
-            if not isinstance(parsed, (bool, int, float, str, list, dict, type(None))):
-                parsed = value
-        except (ValueError, SyntaxError, MemoryError, RecursionError):
-            parsed = value  # plain text: a JSON string
-    if isinstance(parsed, (int, float)) and not isinstance(parsed, bool) \
-            and _WANTS_STRING.search(instruction[:match.start()]):
-        return json.dumps(value, ensure_ascii=False)  # keep the printed digits exactly
-    if valid:
+    if json_line(value) is not None:
+        if value.lower() in ('"true"', '"false"'):
+            # JSON has a boolean type: the string "true" is never the right encoding.
+            return value.lower().strip('"')
         return value
+    try:
+        parsed = ast.literal_eval(value)
+        if not isinstance(parsed, (bool, int, float, str, list, dict, type(None))):
+            parsed = value
+    except (ValueError, SyntaxError, MemoryError, RecursionError):
+        parsed = value  # plain text: a JSON string
     try:
         return json.dumps(parsed, ensure_ascii=False, allow_nan=False)
     except (TypeError, ValueError):
@@ -141,6 +142,12 @@ def format_problem(answer: str, check: str, instruction: str = "") -> str | None
         return f"the task expects a {check.removeprefix('exact_')} number, but the script printed {answer[:80]!r}"
     if len(answer) > 200:
         return "the last printed line is too long to be a final answer (debug output?)"
+    if answer in ("None", "null") and _WANTS_JSON.search(instruction):
+        # Usually a lookup that found nothing, but JSON null can be the answer: one repair, then the
+        # model's repeated null is accepted (SOFT_PROBLEMS).
+        return ("the script printed null: if a lookup found nothing, fix it (check keys, filters and the real "
+                "file layout in the stdout below); print null again only if the answer really is JSON null; "
+                "if it cannot be determined, print UNSOLVABLE")
     if answer in ("None", "null", "nan", "NaN"):
         # A lookup that found nothing (wrong key, filter or layout), not an answer.
         return (f"the script printed {answer}: the value was not found (check keys, filters and the real file "

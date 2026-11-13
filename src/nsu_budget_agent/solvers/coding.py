@@ -32,8 +32,8 @@ Reply ONLY with the complete corrected content of every file you change, each as
 ```
 If the tests cannot pass by editing the non-test files (e.g. contradictory tests), reply exactly UNSOLVABLE."""
 
-# Hidden tests may cover functions the visible tests miss: on a hidden-bug set built from
-# organizer-style tasks (one failing test removed) the model fixed only the tested functions.
+# Hidden tests may cover functions the visible tests miss: otherwise the model fixes only the
+# functions the visible tests exercise.
 HIDDEN_BUGS = (
     "Hidden tests also check functions the visible tests do not cover. Read EVERY function and fix each "
     "one whose code does not do what its name, docstring and the TASK say (wrong operator, off-by-one, "

@@ -1,7 +1,6 @@
 """Write results immediately after each solved task.
 
-* ``answer.txt`` goes next to ``task.json`` (organizers' answer, 2026-11-07 Q&A).
-  An infeasible task gets NO file (also their answer).
+* ``answer.txt`` goes next to ``task.json``; an infeasible task gets NO file.
 * Files are 0644 and replaced atomically (temp file + rename), so a kill never leaves
   a half-written answer and a non-root checker can read them.
 * If ``OUT`` / ``--out`` is given, an aggregate JSON {task_id: answer} is rewritten after
@@ -22,7 +21,7 @@ from .tasks import Task
 
 def atomic_write(path: Path, data: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(prefix=".astra-", dir=str(path.parent))
+    fd, tmp = tempfile.mkstemp(prefix=".agent-", dir=str(path.parent))
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(data)
@@ -71,12 +70,12 @@ class Publisher:
                 atomic_write(target, text)
                 ok = True
             except OSError as exc:
-                print(f"[astra] cannot write {target}: {exc}", file=sys.stderr)
+                print(f"[agent] cannot write {target}: {exc}", file=sys.stderr)
         self.answers[task.id] = answer.strip()
         out = self._out_path()
         if out is not None:
             try:
                 atomic_write(out, json.dumps(self.answers, ensure_ascii=False, indent=1))
             except OSError as exc:
-                print(f"[astra] cannot write OUT {out}: {exc}", file=sys.stderr)
+                print(f"[agent] cannot write OUT {out}: {exc}", file=sys.stderr)
         return ok

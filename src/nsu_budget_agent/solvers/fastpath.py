@@ -1,4 +1,4 @@
-"""Zero-token solvers for exact task templates (the organizers' published phrasing).
+"""Zero-token solvers for exact task templates (the phrasing of the published example tasks).
 
 Strict by design: EVERY sentence of the instruction must be recognized (apart from
 whitelisted boilerplate about tools/answer.txt). One unknown sentence -> not applicable,
