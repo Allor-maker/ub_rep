@@ -1,7 +1,0 @@
-{
- "task_id": "search_kb",
- "task_type": "search",
- "reward": 3,
- "check": "exact_str",
- "instruction": "e2e-search-kb: In which city is the headquarters of the employer of Irina Smith? Use the knowledge base in kb/."
-}

@@ -1,8 +1,8 @@
 name: CI
 
-# Every push and pull request: lint + unit tests, then the Docker image is built and checked the
-# way the organizers will run it (size, build time, official launch flags), and end-to-end
-# scenarios run against a scripted fake LLM (no API key, no tokens spent).
+# Every push and pull request: the Docker image is built and checked the way the organizers
+# will run it (build time, size, official launch flags). Unit tests, lint and end-to-end
+# scenarios with a fake LLM live in the `dev` branch.
 "on":
   push:
   pull_request:
@@ -16,43 +16,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: lint + unit tests
-    outputs:
-      tests: ${{ steps.unit.outputs.summary }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      # Unit tests need only httpx; without openJiuwen the phases run directly (same code path).
-      - run: pip install httpx==0.28.1 ruff==0.8.6
-      - run: ruff check src tools tests run_agent.py
-      - id: unit
-        run: |
-          set +e
-          PYTHONPATH=src:tests python -m unittest discover -s tests -t tests -v 2>&1 | tee unit.log
-          rc=${PIPESTATUS[0]}
-          echo "summary=$(grep -E '^Ran [0-9]+ tests' unit.log) $(tail -n 1 unit.log)" >> "$GITHUB_OUTPUT"
-          exit $rc
-
   docker:
-    name: image + end-to-end
+    name: image + official launch
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    outputs:
-      build: ${{ steps.build.outputs.took }}
-      size: ${{ steps.size.outputs.shown }}
-      unpacked: ${{ steps.size.outputs.unpacked }}
-      official: ${{ steps.official.outcome }}
-      full: ${{ steps.e2e_full.outcome }}|${{ steps.e2e_full.outputs.line }}
-      budget: ${{ steps.e2e_budget.outcome }}|${{ steps.e2e_budget.outputs.line }}
-      ratelimit: ${{ steps.e2e_ratelimit.outcome }}|${{ steps.e2e_ratelimit.outputs.line }}
-      dead: ${{ steps.e2e_dead.outcome }}|${{ steps.e2e_dead.outputs.line }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -95,109 +62,3 @@ jobs:
             --cap-drop ALL --security-opt no-new-privileges --pids-limit 512 --workdir /app \
             --entrypoint python astra:ci /app/run_agent.py --tasks-dir /data/tasks
           test "$(cat /tmp/tasks/math_1/answer.txt)" = "4"
-
-      - name: "End-to-end: all tasks solved"
-        id: e2e_full
-        # every scenario runs even if another one failed, so the report shows all of them
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: |
-          set +e
-          tools/e2e.sh full astra:ci 2>&1 | tee e2e.log
-          rc=${PIPESTATUS[0]}
-          echo "line=$(grep -m1 '^scenario=' e2e.log | sed 's/^scenario=[a-z]* //') $(grep -m1 '^FAIL' e2e.log)" >> "$GITHUB_OUTPUT"
-          exit $rc
-      - name: "End-to-end: budget runs out (emulated organizers' stop)"
-        id: e2e_budget
-        # every scenario runs even if another one failed, so the report shows all of them
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: |
-          set +e
-          tools/e2e.sh budget astra:ci 2>&1 | tee e2e.log
-          rc=${PIPESTATUS[0]}
-          echo "line=$(grep -m1 '^scenario=' e2e.log | sed 's/^scenario=[a-z]* //') $(grep -m1 '^FAIL' e2e.log)" >> "$GITHUB_OUTPUT"
-          exit $rc
-      - name: "End-to-end: proxy rate-limits (429), parallelism must adapt"
-        id: e2e_ratelimit
-        # every scenario runs even if another one failed, so the report shows all of them
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: |
-          set +e
-          tools/e2e.sh ratelimit astra:ci 2>&1 | tee e2e.log
-          rc=${PIPESTATUS[0]}
-          echo "line=$(grep -m1 '^scenario=' e2e.log | sed 's/^scenario=[a-z]* //') $(grep -m1 '^FAIL' e2e.log)" >> "$GITHUB_OUTPUT"
-          exit $rc
-      - name: "End-to-end: proxy rejects everything (402)"
-        id: e2e_dead
-        # every scenario runs even if another one failed, so the report shows all of them
-        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        run: |
-          set +e
-          tools/e2e.sh dead astra:ci 2>&1 | tee e2e.log
-          rc=${PIPESTATUS[0]}
-          echo "line=$(grep -m1 '^scenario=' e2e.log | sed 's/^scenario=[a-z]* //') $(grep -m1 '^FAIL' e2e.log)" >> "$GITHUB_OUTPUT"
-          exit $rc
-
-  report:
-    name: PR report
-    needs: [test, docker]
-    # only for pull requests from this repository (a fork's token cannot comment)
-    if: ${{ always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      pull-requests: write
-    steps:
-      - name: Post or update the CI report comment
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          PR: ${{ github.event.pull_request.number }}
-          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          SHA: ${{ github.event.pull_request.head.sha }}
-          TEST_RESULT: ${{ needs.test.result }}
-          TESTS: ${{ needs.test.outputs.tests }}
-          DOCKER_RESULT: ${{ needs.docker.result }}
-          BUILD: ${{ needs.docker.outputs.build }}
-          SIZE: ${{ needs.docker.outputs.size }}
-          UNPACKED: ${{ needs.docker.outputs.unpacked }}
-          OFFICIAL: ${{ needs.docker.outputs.official }}
-          E2E_FULL: ${{ needs.docker.outputs.full }}
-          E2E_BUDGET: ${{ needs.docker.outputs.budget }}
-          E2E_RATELIMIT: ${{ needs.docker.outputs.ratelimit }}
-          E2E_DEAD: ${{ needs.docker.outputs.dead }}
-        run: |
-          python3 - <<'PY' > report.md
-          import os
-          e = os.environ
-          mark = lambda ok: "✅" if ok else "❌"
-          rows = [
-              ("Lint + unit tests", e["TEST_RESULT"] == "success", e.get("TESTS") or e["TEST_RESULT"]),
-              ("Build (limit 1000 s)", bool(e.get("BUILD")) and int(e["BUILD"]) < 900,
-               f"{e['BUILD']} s" if e.get("BUILD") else "not built"),
-              ("Image size (limit 4 GB)", bool(e.get("SIZE")),
-               f"docker images {e.get('SIZE') or '?'}, unpacked {e.get('UNPACKED') or '?'}"),
-              ("Official launch, no key", e.get("OFFICIAL") == "success", e.get("OFFICIAL") or "skipped"),
-          ]
-          for name, key in (("full", "E2E_FULL"), ("budget", "E2E_BUDGET"), ("ratelimit (429)", "E2E_RATELIMIT"),
-                            ("dead proxy (402)", "E2E_DEAD")):
-              outcome, _, line = (e.get(key) or "skipped|").partition("|")
-              rows.append((f"E2E: {name}", outcome == "success", line.strip() or outcome or "skipped"))
-          ok = all(r[1] for r in rows)
-          print("<!-- ci-report -->")
-          print(f"### CI {mark(ok)} for {e['SHA'][:7]}")
-          print()
-          print("| Check | | Result |")
-          print("| --- | --- | --- |")
-          for name, good, detail in rows:
-              print(f"| {name} | {mark(good)} | {detail.replace('|', '/')} |")
-          print()
-          print(f"[Full log]({e['RUN_URL']})")
-          PY
-          cat report.md
-          id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
-                 -q '.[] | select(.body | startswith("<!-- ci-report -->")) | .id' | tail -n 1)
-          if [ -n "$id" ]; then
-            gh api -X PATCH "repos/$REPO/issues/comments/$id" -F body=@report.md > /dev/null
-          else
-            gh pr comment "$PR" --repo "$REPO" --body-file report.md
-          fi
