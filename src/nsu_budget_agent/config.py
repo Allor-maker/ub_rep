@@ -63,6 +63,18 @@ class Config:
     model: str = DEFAULT_MODEL
     # Second opinion for tasks the main model failed (second pass, only if budget remains).
     second_model: str | None = DEFAULT_SECOND_MODEL
+    # Coding when the visible tests cannot judge (they already pass, or there are none). A model
+    # named here is always used. None = adaptive: the second (reasoning) model while the budget
+    # comfortably covers the rest of the first pass, else the main model. Measured 12.11 on 92 such
+    # tasks: reasoning solves 11 more, but costs 3x (its length varies up to 6x on the same prompt).
+    spec_model: str | None = None
+    adaptive_spec: bool = True
+    # Reasoning only if remaining budget >= SPEC_MARGIN x (forecast of the not yet started first-pass
+    # tasks + this task with reasoning). The forecast was off by up to 1.7x on single sets (12.11).
+    spec_margin: float = 2.0
+    # After pass 2, with budget left: the second model rechecks review-mode coding answers that the
+    # main model gave (when the adaptive choice had to save tokens).
+    coding_recheck: bool = True
     budget: float | None = DEFAULT_BUDGET  # competition tokens; None = no limit (dev runs only)
     concurrency: int = 2  # NeuralDeep allows 3, but rejected 1 of 64 at 3; every 429 is billed
     deadline_s: float = 3300.0
@@ -120,6 +132,10 @@ def parse_config(argv: list[str] | None = None, environ: dict | None = None) -> 
         api_key=(env.get("LLM_API_KEY") or "").strip() or None,
         model=model or DEFAULT_MODEL,
         second_model=_model(env, "AGENT_SECOND_MODEL", DEFAULT_SECOND_MODEL),
+        spec_model=_model(env, "AGENT_SPEC_MODEL", None),
+        adaptive_spec=env.get("AGENT_ADAPTIVE_SPEC", "1") != "0",
+        spec_margin=max(1.0, _env_float(env, "AGENT_SPEC_MARGIN", 2.0) or 2.0),
+        coding_recheck=env.get("AGENT_CODING_RECHECK", "1") != "0",
         budget=_env_float(env, "BUDGET", DEFAULT_BUDGET),
         concurrency=max(1, min(int(concurrency), 16)),
         deadline_s=max(30.0, min(float(deadline or 3300.0), 3550.0)),

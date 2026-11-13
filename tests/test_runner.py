@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import shutil
 import unittest
 
 from helpers import FakeLLM, make_task, temp_root
@@ -166,6 +167,43 @@ class RunnerTests(unittest.TestCase):
         self.assertNotIn("Olga Petrova", asked)  # rejected for free
         self.assertIn("Ivan Petrov", asked)  # high reward: the model gets a look
 
+    def test_coding_spec_model_saves_on_tight_budget_and_rechecks(self):
+        from nsu_budget_agent import planner
+        from nsu_budget_agent.tasks import load_tasks
+        root = temp_root()
+        stub = "def double(x):\n    return None\n"
+        weak = ("import unittest\nfrom mylib import double\n\nclass T(unittest.TestCase):\n"
+                "    def test_none(self):\n        self.assertIsNone(double(None))\n\n"
+                "if __name__ == '__main__':\n    unittest.main()\n")
+        make_task(root, "review", "Implement `double(x)`: return 2*x, None for None. Write ONLY the word DONE "
+                  "to answer.txt.", task_type="coding", check="unittest", files={"mylib.py": stub, "test_mylib.py": weak})
+        make_task(root, "implement", "Implement `double(x)` returning 2*x. Write ONLY the word DONE to answer.txt.",
+                  task_type="coding", check="unittest", files={"mylib.py": stub})
+        low = min(planner.estimate(t) for t in load_tasks(root))
+        good = "def double(x):\n    return None if x is None else 2 * x\n"
+        def reply(messages, model):  # the main model misses the bug in review; fixes are otherwise right
+            if model.endswith("-noreason") and "visible tests already pass" in messages[-1]["content"]:
+                return "OK"
+            return "### FILE: mylib.py\n```python\n" + good + "```"
+        # 4x the cheapest estimate: each task fits, but not "2 x (rest + 3 x own)" -> main model first.
+        fake = FakeLLM(reply, usage=(500, 20))  # 70 tokens per call
+        summary = asyncio.run(build(root, fake, second_pass=False, budget=4 * low).run())
+        models = [r["model"] for r in fake.requests]
+        self.assertEqual(models[:2], ["qwen3.8-27b-noreason"] * 2, models)
+        self.assertEqual(summary["coding_reasoning_offered"], 0)
+        # Budget left: the reasoning model rechecks the review answer only (implement is not rechecked).
+        self.assertEqual(models[2:], ["qwen3.8-27b"], models)
+        self.assertEqual((root / "review" / "workspace" / "mylib.py").read_text(), good)
+        self.assertEqual((root / "review" / "answer.txt").read_text(), "DONE\n")
+        # Without the recheck the main model's answers stay.
+        root2 = temp_root()
+        for name in ("review", "implement"):
+            shutil.copytree(root / name, root2 / name)
+        (root2 / "review" / "workspace" / "mylib.py").write_text(stub)
+        fake2 = FakeLLM(reply, usage=(500, 20))
+        asyncio.run(build(root2, fake2, second_pass=False, budget=4 * low, coding_recheck=False).run())
+        self.assertEqual([r["model"] for r in fake2.requests], ["qwen3.8-27b-noreason"] * 2)
+
     def test_coding_spec_review_and_implement_modes(self):
         root = temp_root()
         stub = "def double(x):\n    return None\n"
@@ -182,7 +220,8 @@ class RunnerTests(unittest.TestCase):
         fake = FakeLLM(lambda m, model: "### FILE: mylib.py\n```python\n" + good + "```")
         asyncio.run(build(root, fake, second_pass=False).run())
         self.assertEqual(len(fake.requests), 2)  # weak passing tests did not short-circuit; no tests != pass
-        self.assertEqual({r["model"] for r in fake.requests}, {"qwen3.8-27b"})  # spec tasks -> reasoning model
+        # The budget easily covers both: the reasoning model reviews/implements (adaptive spec model).
+        self.assertEqual({r["model"] for r in fake.requests}, {"qwen3.8-27b"})
         for task_id in ("review", "implement"):
             self.assertEqual((root / task_id / "workspace" / "mylib.py").read_text(), good)
             self.assertEqual((root / task_id / "answer.txt").read_text(), "DONE\n")
