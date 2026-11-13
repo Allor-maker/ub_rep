@@ -1,4 +1,4 @@
-# Astra v2 harness on openJiuwen 0.1.19.
+# Budget-aware task agent on openJiuwen 0.1.19 (Undefined Behavior Team).
 # Pinned base image tag and a full pip lock (requirements.lock, installed with --no-deps).
 # Works with the official read-only launch: --read-only --tmpfs /tmp --workdir /app.
 FROM python:3.11.11-slim-bookworm

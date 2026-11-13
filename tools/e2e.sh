@@ -3,7 +3,7 @@
 # scripted fake LLM (tests/e2e/fake_llm.py) on tests/e2e/tasks, then tools/e2e_check.py checks it.
 # Usage: tools/e2e.sh <full|budget|ratelimit|dead|all> [image]      (no API key, no internet needed)
 set -uo pipefail
-SCENARIO="${1:?usage: $0 <full|budget|ratelimit|dead|all> [image]}"; IMAGE="${2:-astra:ci}"
+SCENARIO="${1:?usage: $0 <full|budget|ratelimit|dead|all> [image]}"; IMAGE="${2:-hack:ci}"
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 
 if [[ "$SCENARIO" == all ]]; then
@@ -20,10 +20,10 @@ case "$SCENARIO" in
   *) echo "unknown scenario $SCENARIO" >&2; exit 2 ;;
 esac
 
-RUN="$(mktemp -d "${TMPDIR:-/tmp}/astra-e2e-$SCENARIO-XXXXXX")"
+RUN="$(mktemp -d "${TMPDIR:-/tmp}/agent-e2e-$SCENARIO-XXXXXX")"
 cp -r "$REPO/tests/e2e/tasks" "$RUN/tasks"
 mkdir -p "$RUN/stats" && chmod -R a+rwX "$RUN"
-NET="astra-e2e-$$"; FAKE_NAME="astra-fake-llm-$$"
+NET="agent-e2e-$$"; FAKE_NAME="agent-fake-llm-$$"
 cleanup() { docker rm -f "$FAKE_NAME" >/dev/null 2>&1; docker network rm "$NET" >/dev/null 2>&1; }
 trap cleanup EXIT
 docker network create "$NET" >/dev/null
@@ -54,5 +54,5 @@ if [[ $code -ne 0 ]]; then
   echo "FAIL: scenario $SCENARIO: the agent exited with code $code"; tail -n 30 "$RUN/stderr.log"; exit 1
 fi
 if ! python3 "$REPO/tools/e2e_check.py" "$SCENARIO" "$RUN"; then
-  echo "--- agent log (tail) ---"; grep '^\[astra' "$RUN/stderr.log" | tail -n 40; exit 1
+  echo "--- agent log (tail) ---"; grep '^\[agent' "$RUN/stderr.log" | tail -n 40; exit 1
 fi

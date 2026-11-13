@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Grade a finished run with a teammate's "Astra" grader (grade.py + private_answers.json).
-# Usage: tools/grade_astra.sh <run_name> <grader_dir>
+# Grade a finished run with the grader of one of our task sets (grade.py + private_answers.json).
+# Usage: tools/grade_set.sh <run_name> <grader_dir>
 #
 # Their convention for infeasible tasks is answer "UNSOLVABLE"; the organizers' rule is
 # "no answer.txt". The agent follows the organizers, so for grading we work on a COPY and
@@ -29,6 +29,6 @@ chmod -R a+rwX "$GRADED"
 docker run --rm --network none --read-only --tmpfs /tmp:rw,size=512m --cap-drop ALL \
   --security-opt no-new-privileges --memory 2g --pids-limit 256 --user "$(id -u):$(id -g)" \
   -v "$GRADER:/grader:ro" -v "$GRADED:/tasks:ro" -v "$RUN/logs:/out:rw" -w /tmp \
-  python:3.12-slim python /grader/grade.py --tasks /tasks --verbose --json-report /out/astra_report.json \
-  > "$RUN/logs/astra_grade.txt"
-grep -vE '^[a-z_]+_[0-9]+ ' "$RUN/logs/astra_grade.txt"  # summary lines only, not per-task
+  python:3.12-slim python /grader/grade.py --tasks /tasks --verbose --json-report /out/set_report.json \
+  > "$RUN/logs/set_grade.txt"
+grep -vE '^[a-z_]+_[0-9]+ ' "$RUN/logs/set_grade.txt"  # summary lines only, not per-task

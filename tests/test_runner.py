@@ -243,6 +243,33 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual((root / "m" / "answer.txt").read_text(), "20\n")  # verifier + judge fixed the maths
         self.assertEqual([r["model"] for r in fake.requests].count("qwen3.8-27b"), 2)  # data not verified
 
+    def test_json_answers_keep_the_model_type_and_get_one_soft_repair(self):
+        root = temp_root()
+        tail = " Write one JSON value (quote a string answer; arrays retain order) in answer.txt next to task.json."
+        make_task(root, "count", "How many rows? Integer-valued rationals as integer strings; counts stay JSON "
+                  "integers." + tail, task_type="data_analysis", reward=1,
+                  check="exact_str")
+        make_task(root, "null", "What does the call return? Return JSON null." + tail, task_type="search", reward=1,
+                  check="exact_str")
+        make_task(root, "bool", "Is index 0 valid? Boolean." + tail, task_type="search", reward=1, check="exact_str")
+
+        def answer(messages, model):
+            user, repair = messages[1]["content"], len(messages) > 2
+            if "How many rows" in user:
+                return "```python\nimport json\nprint(json.dumps(61))\n```"
+            if "Return JSON null" in user:
+                return "```python\nprint(None)\n```"  # printed twice: accepted as null
+            if repair:
+                return "```python\nimport json\nprint(json.dumps(False))\n```"
+            return "```python\nprint('C.5.1. First Response ....45')\n```"  # a document line, not JSON
+
+        fake = FakeLLM(answer)
+        asyncio.run(build(root, fake).run())
+        self.assertEqual((root / "count" / "answer.txt").read_text(), "61\n")
+        self.assertEqual((root / "null" / "answer.txt").read_text(), "null\n")
+        self.assertEqual((root / "bool" / "answer.txt").read_text(), "false\n")
+        self.assertIn("ANSWER FORMAT", fake.requests[0]["messages"][1]["content"])
+
     def test_verifier_alone_cannot_overturn_an_answer(self):
         root = temp_root()
         make_task(root, "m", "Compute (2+3)*4 in some unusual way.", task_type="math", reward=1)

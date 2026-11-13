@@ -2,7 +2,7 @@
 
 Everything is optional except the tasks directory: the official launch passes only
 ``--tasks-dir`` plus ``LLM_BASE_URL``/``LLM_API_KEY``, so no other setting may be required.
-Unknown CLI arguments are ignored on purpose (the organizers may add some).
+Unknown CLI arguments are ignored on purpose (the launcher may add some).
 """
 
 from __future__ import annotations
@@ -19,11 +19,11 @@ MODELS = (
     "qwen3.6-35b-a3b-noreason",
 )
 
-# Chosen on 130 graded tasks (see README "Модели"): cheapest model with ~98-100% accuracy.
+# The cheapest model that solves most tasks (see README "Модели").
 DEFAULT_MODEL = "qwen3.8-27b-noreason"
 DEFAULT_SECOND_MODEL = "qwen3.8-27b"  # reasoning: strongest, best at spotting infeasible tasks
-# Organizers (meeting 2026-11-10): the budget is 100000 competition tokens; the proxy does not
-# enforce it, the run is stopped from outside once it is spent. BUDGET env overrides it.
+# Default budget in competition tokens; the BUDGET env overrides it. The run is stopped from
+# outside once the budget is spent.
 DEFAULT_BUDGET = 100_000.0
 
 
@@ -65,18 +65,18 @@ class Config:
     second_model: str | None = DEFAULT_SECOND_MODEL
     # Coding when the visible tests cannot judge (they already pass, or there are none). A model
     # named here is always used. None = adaptive: the second (reasoning) model while the budget
-    # comfortably covers the rest of the first pass, else the main model. Measured 12.11 on 92 such
-    # tasks: reasoning solves 11 more, but costs 3x (its length varies up to 6x on the same prompt).
+    # comfortably covers the rest of the first pass, else the main model. Reasoning solves more of
+    # these tasks but costs ~3x (its length varies a lot on the same prompt).
     spec_model: str | None = None
     adaptive_spec: bool = True
     # Reasoning only if remaining budget >= SPEC_MARGIN x (forecast of the not yet started first-pass
-    # tasks + this task with reasoning). The forecast was off by up to 1.7x on single sets (12.11).
+    # tasks + this task with reasoning); the forecast can be off by up to ~1.7x.
     spec_margin: float = 2.0
     # After pass 2, with budget left: the second model rechecks review-mode coding answers that the
     # main model gave (when the adaptive choice had to save tokens).
     coding_recheck: bool = True
     budget: float | None = DEFAULT_BUDGET  # competition tokens; None = no limit (dev runs only)
-    concurrency: int = 2  # NeuralDeep allows 3, but rejected 1 of 64 at 3; every 429 is billed
+    concurrency: int = 2  # 3 already got occasional 429s, and every rejected request is billed
     deadline_s: float = 3300.0
     llm_timeout_s: float = 120.0
     max_repairs: int = 1
@@ -87,18 +87,18 @@ class Config:
     # Reward-aware effort: cheap handling of low-reward tasks, extra checks for high-reward ones.
     reward_aware: bool = True
     # Share of tasks (by reward, top) whose LLM answers are re-solved by the second model.
-    verify_top: float = 0.0  # off: on hard100 it cost +21% tokens and changed no answer
+    verify_top: float = 0.0  # off: it cost ~20% more tokens and changed no answer in our runs
     # Task types whose LLM answers are always re-solved by the second model (a judge settles
     # disagreements). Maths: a wrong formula runs without any error. Data: a missed filter
     # condition (e.g. counting refunds as purchases) runs without any error too.
     verify_types: tuple[str, ...] = ("math", "data_analysis")
     # Correct the a-priori cost estimates online, per task type, from tasks already solved.
     calibrate: bool = True
-    # Our own count is not the organizers' one, and being stopped by them costs nothing (what is
+    # Our own count is not the proxy's one, and being stopped from outside costs nothing (what is
     # written counts). So first-pass tasks that do not fit our count are deferred, not dropped,
     # and tried cheapest first once the affordable ones are done.
     soft_budget: bool = True
-    # Dev only: emulate the organizers' stop (no request and no answer after the budget is spent).
+    # Dev only: emulate the external stop (no request and no answer after the budget is spent).
     stop_at_budget: bool = False
     extra: dict = field(default_factory=dict)
 
@@ -109,7 +109,7 @@ class Config:
 
 def parse_config(argv: list[str] | None = None, environ: dict | None = None) -> Config:
     env = dict(os.environ if environ is None else environ)
-    parser = argparse.ArgumentParser(description="Astra v2 harness")
+    parser = argparse.ArgumentParser(description="Budget-aware task agent")
     parser.add_argument("--tasks-dir", "--tasks", dest="tasks_dir")
     parser.add_argument("--out", "--output", dest="out")
     parser.add_argument("--log-dir", dest="log_dir")

@@ -25,7 +25,7 @@ from .tasks import Task
 
 CHARS_PER_TOKEN = 3.7
 # kind -> (expected output tokens per call, expected calls per task)
-# Fitted on 89 single-call successes (fresh50 + practice80): mean completion 69 / 63 / 126.
+# Fitted on single-call successes from our trajectories: mean completion ~69 / 63 / 126.
 PRIORS = {
     "program": (75.0, 1.1),
     "program_kb": (70.0, 1.15),
@@ -78,8 +78,8 @@ class Calibrator:
     def total_factor(self, task_type: str) -> float:
         """Factor for forecasting a SUM of costs: sum(actual) / sum(estimate), shrunk towards 1 by
         PRIOR_WEIGHT average tasks. The geometric mean above ranks tasks well but misses the costly
-        tail: on 19 runs (12.11) it forecast the remaining first-pass cost at 0.88-0.93 of the actual
-        (median), this ratio at 0.97-1.00; both are off by up to 0.6x-1.5x on single sets."""
+        tail: it forecast the remaining first-pass cost at ~0.9 of the actual, this ratio at ~1.0;
+        both can be off by 0.6x-1.5x on a single task set."""
         n = self._count.get(task_type, 0)
         if not self.enabled or n == 0:
             return 1.0

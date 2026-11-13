@@ -25,7 +25,7 @@ def make_task(root: Path, task_id: str, instruction: str, *, task_type: str = "m
 
 
 def temp_root() -> Path:
-    return Path(tempfile.mkdtemp(prefix="astra-test-"))
+    return Path(tempfile.mkdtemp(prefix="agent-test-"))
 
 
 class FakeLLM:

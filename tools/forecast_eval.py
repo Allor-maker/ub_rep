@@ -9,7 +9,7 @@ import math
 import re
 import sys
 
-LINE = re.compile(r"^\[astra\s+[\d.]+s\]\s+(\S+)\s+(answered|infeasible|failed)\s+(\S+)\s+cost=\s*([\d.]+)")
+LINE = re.compile(r"^\[agent\s+[\d.]+s\]\s+(\S+)\s+(answered|infeasible|failed)\s+(\S+)\s+cost=\s*([\d.]+)")
 QUANTILES = (0.1, 0.25, 0.5, 0.75)
 
 

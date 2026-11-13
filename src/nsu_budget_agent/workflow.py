@@ -46,7 +46,7 @@ def _sdk() -> dict | None:
         quiet_framework_logs()
     except Exception as exc:  # noqa: BLE001 - any import problem disables the SDK path
         _SDK_ERROR = f"{type(exc).__name__}: {exc}"
-        print(f"[astra] openJiuwen unavailable, running steps directly: {_SDK_ERROR}", file=sys.stderr)
+        print(f"[agent] openJiuwen unavailable, running steps directly: {_SDK_ERROR}", file=sys.stderr)
         return None
     _SDK = {
         "End": End,
@@ -134,7 +134,7 @@ async def run_phase(name: str, steps: list[Step]) -> PhaseRun:
             if output.state == sdk["COMPLETED"]:
                 run.engine = "openjiuwen"
         except Exception as exc:  # noqa: BLE001
-            print(f"[astra] workflow '{name}' fell back to direct steps: {type(exc).__name__}", file=sys.stderr)
+            print(f"[agent] workflow '{name}' fell back to direct steps: {type(exc).__name__}", file=sys.stderr)
     for step_name, fn in steps:  # whatever the framework did not run
         await _call(run, step_name, fn)
     if sdk is not None:

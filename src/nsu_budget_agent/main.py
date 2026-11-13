@@ -21,7 +21,7 @@ def _prepare_process() -> None:
         if not candidate:
             continue
         try:
-            workdir = tempfile.mkdtemp(prefix="astra-run-", dir=candidate)
+            workdir = tempfile.mkdtemp(prefix="agent-run-", dir=candidate)
             os.chdir(workdir)
             return
         except OSError:

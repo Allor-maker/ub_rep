@@ -14,7 +14,7 @@ import shutil
 import sys
 from pathlib import Path
 
-LINE = re.compile(r"^\[astra\s+[\d.]+s\]\s+(\S+)\s+(answered|infeasible|failed)\s+.*?total=\s*([\d.]+)")
+LINE = re.compile(r"^\[agent\s+[\d.]+s\]\s+(\S+)\s+(answered|infeasible|failed)\s+.*?total=\s*([\d.]+)")
 
 
 def main() -> None:

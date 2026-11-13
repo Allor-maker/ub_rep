@@ -233,25 +233,34 @@ class HelperTests(unittest.TestCase):
         from nsu_budget_agent.solvers.common import format_problem, to_json_answer
         tail = " Write one JSON value (quote a string answer; arrays retain order) in answer.txt next to task.json."
         plain = "Who bears transit risk?" + tail
+        # Only the encoding is repaired: Python repr -> JSON, plain text -> a JSON string.
         self.assertEqual(to_json_answer("Buyer", plain), '"Buyer"')
         self.assertEqual(to_json_answer("False", plain), "false")
-        self.assertEqual(to_json_answer("true", plain), "true")
-        self.assertEqual(to_json_answer("9.0", plain), "9.0")
-        self.assertEqual(to_json_answer("[1.0, 2.0]", plain), "[1.0, 2.0]")
+        self.assertEqual(to_json_answer("None", plain), "null")
         self.assertEqual(to_json_answer("['a', 'é']", plain), '["a", "é"]')
         self.assertEqual(to_json_answer("002", plain), '"002"')
         self.assertEqual(to_json_answer("299/576", plain), '"299/576"')
         self.assertEqual(to_json_answer("NaN", plain), '"NaN"')
-        dec = "Give the entropy as a six-place decimal string." + tail
-        self.assertEqual(to_json_answer("1.566822", dec), '"1.566822"')
-        ids = "Join transactions by exact string id. Return total amount." + tail
-        self.assertEqual(to_json_answer("15", ids), "15")
+        # The model's own JSON keeps its type, whatever words the task uses (no keyword rules).
+        self.assertEqual(to_json_answer('"true"', plain), "true")  # JSON has booleans: never the string
+        self.assertEqual(to_json_answer('"False"', plain), "false")
+        self.assertEqual(to_json_answer('"no"', plain), '"no"')
+        for printed in ("true", "9.0", "[1.0, 2.0]", "61", '"61"', "1.0", '"1.000000"', '"yes"', "null"):
+            self.assertEqual(to_json_answer(printed, plain), printed)
+        rat = ("Count rows. Return noninteger rationals as reduced p/q strings; integer-valued rationals as "
+               "integer strings; counts remain JSON integers. Six places." + tail)
+        self.assertEqual(to_json_answer("61", rat), "61")
+        self.assertEqual(to_json_answer("1.5", rat), "1.5")
         # Tasks that do not ask for JSON keep the bare answer.
         self.assertEqual(to_json_answer("Buyer", "Who bears transit risk?"), "Buyer")
         self.assertIsNotNone(format_problem("Answer written: 10", "exact_str", plain))
         self.assertIsNone(format_problem("['a', 'b']", "exact_str", plain))
         self.assertIsNone(format_problem("value=7", "exact_str", plain))
         self.assertIsNotNone(format_problem("['a', 'b']", "exact_str", "Which keys?"))
+        # null in a JSON task: a soft problem (one repair, then accepted); elsewhere a failed lookup.
+        from nsu_budget_agent.solvers.common import SOFT_PROBLEMS
+        self.assertTrue(format_problem("null", "exact_str", plain).startswith(SOFT_PROBLEMS))
+        self.assertFalse(format_problem("None", "exact_str", "Which city?").startswith(SOFT_PROBLEMS))
 
     def test_paid_hint_only_for_search_by_default(self):
         import os
