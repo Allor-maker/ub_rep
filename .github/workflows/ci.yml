@@ -58,7 +58,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Build (organizers' limit 1000 s)
+      - name: Build (limit 1000 s from the rules)
         id: build
         run: |
           start=$(date +%s)
@@ -69,7 +69,7 @@ jobs:
           echo "### Build: ${took}s (limit 1000s)" >> "$GITHUB_STEP_SUMMARY"
           test "$took" -lt 900 || { echo "::error::build took ${took}s, too close to the 1000s limit"; exit 1; }
 
-      - name: Image size (organizers' limit 4 GB, measured like them with docker images)
+      - name: Image size (limit 4 GB from the rules, measured with docker images)
         id: size
         run: |
           shown=$(docker images hack:ci --format '{{.Size}}')
@@ -106,7 +106,7 @@ jobs:
           rc=${PIPESTATUS[0]}
           echo "line=$(grep -m1 '^scenario=' e2e.log | sed 's/^scenario=[a-z]* //') $(grep -m1 '^FAIL' e2e.log)" >> "$GITHUB_OUTPUT"
           exit $rc
-      - name: "End-to-end: budget runs out (emulated organizers' stop)"
+      - name: "End-to-end: budget runs out (emulated external stop)"
         id: e2e_budget
         # every scenario runs even if another one failed, so the report shows all of them
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
